@@ -1,0 +1,43 @@
+# The driven cavity benchmark
+
+[geometry]
+dimension=2
+domain_size=[1.0, 1.0]
+num_cells=[100,100]
+material_map=""
+
+[solver]
+upwind_factor=0.7
+relax_factor=1.7
+tolerance=1e-3
+max_iters=100
+
+[time]
+max_time=10.0
+step_factor=0.5
+dt_start=0.02
+
+[flow]
+reynolds=1000.0
+initial_velocity=[0.0, 0.0]
+body_force=[0.0, 0.0]
+
+[boundary]
+# The naming/indexing convention used for boundaries is as follows:
+# 
+#      x_neg/west/left   = 0   (all dimensions)
+#      x_pos/east/right  = 1   (all dimensions)
+#      y_neg/south/front = 2   (2D/3D)
+#      y_pos/north/back  = 3   (2D/3D)
+#      z_neg/bottom/down = 4   (3D)
+#      z_pos/top/up      = 5   (3D)
+#
+# Available boundary conditions are as follows:
+#      free-slip      = 0
+#      no-slip        = 1
+#      inflow/outflow = 2
+#      periodic       = 3
+#      
+conditions = {north="noslip", south="noslip", east="noslip", west="noslip"}
+motion = {north=1.0}
+
