@@ -3,9 +3,11 @@
 
 #include <limits>
 
-#include "BoundaryConditions.hpp"
-#include "Problem.hpp"
 #include "Solution.hpp"
+#include "Problem.hpp"
+
+template<typename T>
+struct Solution;
 
 template<typename T>
 struct SolverStats{
@@ -39,6 +41,9 @@ class Solver{
         Solution<T> _solution;
 
     public:
+
+        Solver(){}
+
         Solver(Problem<T>& problem){
 
             _problem = problem;
@@ -67,6 +72,7 @@ class Solver{
         void step(){
 
             // Apply boundary conditions
+            _problem.boundaries().apply_conditions(_solution);
 
             // Compute momenta
 
@@ -95,7 +101,6 @@ class Solver{
                 // Save Timestep Solution
                 
             } while (_problem._tstepper.current_time() <= tmax);
-            
         }
 
 };

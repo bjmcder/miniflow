@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "NDArray.hpp"
-#include "Types.hpp"
 
 template<typename T>
 class Geometry{

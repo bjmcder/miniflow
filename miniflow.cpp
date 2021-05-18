@@ -1,12 +1,13 @@
 #include <iostream>
 
+#include "include/Problem.hpp"
 #include "include/ext/toml.h"
 #include "include/BoundaryConditions.hpp"
 #include "include/Input.hpp"
 #include "include/Geometry.hpp"
 #include "include/Types.hpp"
 #include "include/Solver.hpp"
-#include "include/Problem.hpp"
+
 
 int main(int argc, char** argv){
 
@@ -26,7 +27,7 @@ int main(int argc, char** argv){
 
     auto problem = Problem<real_t>(geom, tstepper, bcs, flow_params);
 
-    //auto solver = Solver<real_t>(problem);
+    auto solver = Solver<real_t>(problem);
 
     // Solve the problem
     //solver.solve();

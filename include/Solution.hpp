@@ -1,11 +1,17 @@
 #ifndef __SOLUTION_HPP
 #define __SOLUTION_HPP
 
+#include <cmath>
 #include <vector>
 
 #include "NDArray.hpp"
-#include "BoundaryConditions.hpp"
 #include "Problem.hpp"
+
+template<typename T>
+class NDArray; 
+
+template<typename T>
+class Problem;
 
 template<typename T>
 struct Solution{
@@ -24,10 +30,28 @@ struct Solution{
     //NDArray<T> vorticity;
     //NDArray<T> temperature;
 
+    /**
+     * 
+    */
+    Solution(){}
+
+    /**
+     * 
+    */
     Solution(Problem<T>& problem){
 
         auto shape = problem.geometry().ncells();
-        set_array_sizes(shape);
+
+        std::vector<size_t> arraysizes;
+        arraysizes.resize(shape.size());
+
+        // Need to convert int to size_t
+        std::transform(shape.begin(), 
+                       shape.end(),
+                       arraysizes.begin(),
+                        [](int x) { return (size_t)x;});
+
+        set_array_sizes(arraysizes);
     }
 
     /**
@@ -83,7 +107,6 @@ struct Solution{
             }
         }
     }
-
 };
 
 #endif

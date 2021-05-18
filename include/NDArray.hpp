@@ -5,6 +5,8 @@
 #include <numeric>
 #include <vector>
 
+#include <Kokkos_Core.hpp>
+
 
 /**
  * A helper class for providing N-Dimensional indexing into a 1D array.
@@ -79,6 +81,8 @@ class NDArray{
     NDIndexer _indexer;
 
     public:
+
+    NDArray(){}
 
     /**
      * Preferred constructor. Provide a variadic list of arguments specifying
@@ -168,6 +172,9 @@ class NDArray{
         return _data[ix];
     }
 
+    /**
+     * 
+    */
     inline std::vector<T>& data(){
         return _data;
     }

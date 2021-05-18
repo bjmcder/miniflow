@@ -6,6 +6,19 @@
 #include "TimeStepper.hpp"
 #include "FlowParameters.hpp"
 
+// Forward declarations
+template<typename T>
+class BoundaryConditions;
+
+template<typename T>
+class Geometry;
+
+template<typename T>
+class TimeStepper;
+
+template<typename T>
+struct FlowParameters;
+
 template<typename T>
 class Problem{
 
@@ -17,6 +30,8 @@ class Problem{
         FlowParameters<T> _flowparams;
 
     public:
+
+        Problem(){}
 
         Problem(const Geometry<T>& geom,
                 const TimeStepper<T>& tstepper,
@@ -32,7 +47,7 @@ class Problem{
     /**
      * 
     */
-    Geometry<T>& geometry() const{
+    Geometry<T>& geometry(){
         return _geom;
     }
 
