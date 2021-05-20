@@ -3,7 +3,7 @@
 [geometry]
 dimension=2
 domain_size=[1.0, 1.0]
-num_cells=[100,100]
+num_cells=[5,5]
 material_map=""
 
 [solver]

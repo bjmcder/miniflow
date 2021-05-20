@@ -68,7 +68,7 @@ class Geometry{
             return (size_t)val;
         }
 
-        inline std::vector<T>& cell_sizes() const{
+        inline std::vector<T>& cell_sizes(){
             return _cellsize;
         }
 

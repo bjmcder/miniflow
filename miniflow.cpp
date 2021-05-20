@@ -25,13 +25,15 @@ int main(int argc, char** argv){
     auto bcs = indat.build_boundary_conditions();
     auto flow_params = indat.build_flow_params();
 
+    std::cout << "constructing problem\n";
     auto problem = Problem<real_t>(geom, tstepper, bcs, flow_params);
 
+    std::cout << "constructing solver\n";
     auto solver = Solver<real_t>(problem);
 
+    std::cout << "solving the problem\n";
     // Solve the problem
-    //solver.solve();
-
+    solver.solve();
     
     return 0;
 }

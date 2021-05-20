@@ -2,10 +2,9 @@
 #define __ARRAY_HPP
 
 #include <iostream>
+#include <iomanip>
 #include <numeric>
 #include <vector>
-
-#include <Kokkos_Core.hpp>
 
 
 /**
@@ -178,6 +177,94 @@ class NDArray{
     inline std::vector<T>& data(){
         return _data;
     }
+
+    /**
+     * 
+    */
+   template<typename ...Args>
+    void print_row(size_t const & arg0, Args const & ... args){
+
+        auto ncols = this->shape()[0];
+
+        auto sep = "    ";
+        auto prec = 3;
+        auto width = 8;
+
+        std::cout << "[";
+        for (int i=0; i<ncols; i++){
+            std::cout << 
+            std::setw(width) <<
+            std::setprecision(prec) <<
+            this->at(_indexer.get_index(i, arg0, args...)) <<
+            sep;
+        }
+
+        std::cout << "]\n";
+
+    }
+
+    /**
+     * 
+    */
+   template<typename ...Args>
+    void print_panel(size_t const & arg0, Args const & ... args){
+
+        auto nrows = this->shape()[1];
+
+        for (int i=0; i<nrows; i++){
+            print_row(i, arg0, args...);
+        }
+
+        std::cout << "\n";
+
+    }
+
+    /**
+     * 
+    */
+   template<typename ...Args>
+    void print_field2d(size_t const & arg0, Args const & ... args){
+
+        auto nrows = this->shape()[1];
+
+        for (int i=nrows-1; i>=0; i--){
+            print_row(i, arg0, args...);
+        }
+
+        std::cout << "\n";
+
+    }
+
+    /**
+     * 
+    */
+   template<typename ...Args>
+    void print_block(size_t const & arg0, Args const & ... args){
+
+        auto nlayers = this->shape()[2];
+
+        for (int i=0; i<nlayers; i++){
+            print_panel(i, arg0, args...);
+        }
+
+        std::cout << "\n";
+    }
+
+    /**
+     * 
+    */
+   template<typename ...Args>
+    void print_field3d(size_t const & arg0, Args const & ... args){
+
+        auto nlayers = this->shape()[2];
+
+        for (int i=nlayers-1; i>=0; i--){
+            print_field2d(i, arg0, args...);
+        }
+
+        std::cout << "\n";
+    }
+
 };
 
 #endif

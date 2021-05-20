@@ -16,6 +16,8 @@ class Problem;
 template<typename T>
 struct Solution{
 
+    std::vector<int> shape;
+
     NDArray<T> U;
     NDArray<T> V;
     NDArray<T> W;
@@ -31,7 +33,7 @@ struct Solution{
     //NDArray<T> temperature;
 
     /**
-     * 
+     * Default constructor (does nothing).
     */
     Solution(){}
 
@@ -40,18 +42,20 @@ struct Solution{
     */
     Solution(Problem<T>& problem){
 
-        auto shape = problem.geometry().ncells();
+        this->shape = problem.geometry().ncells();
 
         std::vector<size_t> arraysizes;
-        arraysizes.resize(shape.size());
+        arraysizes.resize(this->shape.size());
 
         // Need to convert int to size_t
-        std::transform(shape.begin(), 
-                       shape.end(),
+        std::transform(this->shape.begin(), 
+                       this->shape.end(),
                        arraysizes.begin(),
                         [](int x) { return (size_t)x;});
 
         set_array_sizes(arraysizes);
+
+        initialize_solution(problem);
     }
 
     /**
@@ -77,11 +81,32 @@ struct Solution{
     /**
      * 
     */
+    void initialize_solution(Problem<T>& problem){
+
+        std::fill(U.data().begin(),
+                  U.data().end(), 
+                  problem.flow_parameters().initial_velocities()[0]);
+
+        if (shape.size() > 1){
+            std::fill(V.data().begin(),
+                  V.data().end(), 
+                  problem.flow_parameters().initial_velocities()[1]);
+        }
+
+        if (shape.size() > 2){
+            std::fill(W.data().begin(),
+                  W.data().end(), 
+                  problem.flow_parameters().initial_velocities()[2]);
+        }
+    }
+
+    /**
+     * 
+    */
     std::vector<T> max_velocity_components(int dim){
         std::vector<T> max_components;
 
         max_components.resize(dim);
-
         max_components[0] = absmax(U.data());
 
         if(dim>1){
@@ -98,14 +123,14 @@ struct Solution{
     /**
      * 
     */
-    T& absmax(std::vector<T> data) const{
+    T absmax(std::vector<T> data) const{
         auto max = 0.0;
-
         for (const auto& elem: data){
             if (fabs(elem) > max){
                 max = std::fabs(elem);
             }
         }
+        return max;
     }
 };
 

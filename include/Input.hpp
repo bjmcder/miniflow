@@ -255,7 +255,7 @@ class Input{
         // Convert string bcs to integers
         std::vector<int> bcs;
         for (const auto& b: string_bcs){
-            bcs.push_back(0);
+            bcs.push_back(1);
         }
 
         // Similarly, with boundary motion values, we need to enforce the
@@ -295,13 +295,26 @@ class Input{
      * 
     */
     FlowParameters<T> build_flow_params(){
+
         auto reynolds = _toml_dat.get<T>("flow.reynolds");
+
         auto initial_velocities = \
             _toml_dat.get<toml::Array>("flow.initial_velocity");
+        std::vector<T> ivels;
+        for (const auto& v: initial_velocities){
+            ivels.push_back(v.as<T>());
+        }
+
         auto body_forces = \
             _toml_dat.get<toml::Array>("flow.body_force");
-
-        return FlowParameters<T>(_dim);
+        std::vector<T> bforces;
+        for (const auto& v: body_forces){
+            bforces.push_back(v.as<T>());
+        }
+        return FlowParameters<T>(_dim,
+                                 reynolds,
+                                 ivels,
+                                 bforces);
     }
 
     /**

@@ -54,24 +54,23 @@ class Problem{
     /**
      * 
     */
-    TimeStepper<T>& timestepper() const{
+    TimeStepper<T>& timestepper(){
         return _tstepper;
     }
 
     /**
      * 
     */
-    BoundaryConditions<T>& boundaries() const{
+    BoundaryConditions<T>& boundaries(){
         return _bcs;
     }
 
     /**
      * 
     */
-    FlowParameters<T>& flow_parameters() const{
+    FlowParameters<T>& flow_parameters(){
         return _flowparams;
     }
-
 };
 
 #endif

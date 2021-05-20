@@ -13,17 +13,32 @@ struct FlowParameters{
     /**
      * 
     */
-    FlowParameters(int dim){
-        _reynolds = 0;
-        _initial_velocities.resize(dim);
+    FlowParameters(int dim,
+                   T& reynolds,
+                   std::vector<T>& initial_velocities,
+                   std::vector<T>& body_forces){
+                       
+        _reynolds = reynolds;
+        _initial_velocities= initial_velocities;
         _body_forces.resize(dim);
     }
 
     /**
      * 
     */
-    T& Re() const{
+    const T& Re(){
         return _reynolds;
+    }
+
+    /**
+     * 
+    */
+    const std::vector<T>& initial_velocities(){
+        return _initial_velocities;
+    }
+
+    const std::vector<T>& body_forces(){
+        return _body_forces;
     }
 
 };

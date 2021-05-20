@@ -10,6 +10,9 @@ template<typename T>
 struct Solution;
 
 template<typename T>
+struct Problem;
+
+template<typename T>
 struct SolverStats{
 
     int itercount;
@@ -42,19 +45,38 @@ class Solver{
 
     public:
 
+        /**
+         * 
+        */
         Solver(){}
 
+        /**
+         * 
+        */
         Solver(Problem<T>& problem){
 
             _problem = problem;
+            std::cout << "\tConstructing solution\n";
             _solution = Solution<real_t>(_problem);
+        }
+
+        /**
+         * 
+        */
+        void compute_momenta(){
 
         }
 
+        /**
+         * 
+        */
         void sor_iteration(){
             auto P = &_solution.pressure;
         }
 
+        /**
+         * 
+        */
         void solve_pressure(){
 
             _stats.reset();
@@ -72,7 +94,11 @@ class Solver{
         void step(){
 
             // Apply boundary conditions
+            std::cout << "Applying boundary conditions:\n";
             _problem.boundaries().apply_conditions(_solution);
+
+            _solution.U.print_field2d(0);
+            _solution.V.print_field2d(0);
 
             // Compute momenta
 
@@ -85,22 +111,29 @@ class Solver{
         */
         void solve(){
 
-            auto tmax = _problem._tstepper.max_time();
+            auto tmax = _problem.timestepper().max_time();
 
             do{
+
+                std::cout << "Taking step t = "
+                          << _problem.timestepper().current_time()
+                          << "\n";
+                step();
+
                 // Advance the timestep
                 auto dim = _problem.geometry().dimension();
                 auto cell_sizes = _problem.geometry().cell_sizes();
                 auto Re = _problem.flow_parameters().Re();
+                std::cout << "doing max velocity\n";
                 auto max_vels = _solution.max_velocity_components(dim);
 
-                _problem._tstepper.advance(cell_sizes, Re, max_vels);
-
-                step();
+                std::cout << "advancing timestep\n";
+                _problem.timestepper().advance(cell_sizes, Re, max_vels);
 
                 // Save Timestep Solution
+                throw;
                 
-            } while (_problem._tstepper.current_time() <= tmax);
+            } while (_problem.timestepper().current_time() <= tmax);
         }
 
 };

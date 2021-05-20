@@ -32,21 +32,21 @@ class TimeStepper{
         /**
          * 
         */
-        T& dt() const{
+        const T& dt(){
             return _dt;
         }
 
         /**
          * 
         */
-        T& current_time() const{
+        const T& current_time(){
             return _current_time;
         }
 
         /**
          * 
         */
-        T& max_time() const{
+        const T& max_time(){
             return _max_time;
         }
 
@@ -81,12 +81,12 @@ class TimeStepper{
             std::vector<T> comparands;
             auto max_components = max_vels;
             for (int i=0; i<max_components.size(); i++){
-                comparands[i] = h[i]/max_components[i];
+                comparands.push_back(i/max_components[i]);
             }
             
             comparands.push_back(A);
 
-            auto dt_new = tau * std::min(comparands);
+            auto dt_new = tau * (*std::min_element(comparands.begin(), comparands.end()));
 
             _dt = dt_new; 
         }
