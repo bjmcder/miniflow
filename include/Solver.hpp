@@ -13,6 +13,33 @@ template<typename T>
 struct Problem;
 
 template<typename T>
+struct SolverSettings{
+    T upwind_factor;
+    T relax_factor;
+    T tolerance;
+    int max_iters;
+
+    /**
+     * 
+    */
+    SolverSettings(){}
+
+    /**
+     * 
+    */
+    SolverSettings(const T& gamma,
+                   const T& omega,
+                   const T& tol,
+                   const int& max_it){
+        
+        upwind_factor = gamma;
+        relax_factor = omega;
+        tolerance = tol;
+        max_iters = max_it;
+    }
+};
+
+template<typename T>
 struct SolverStats{
 
     int itercount;
@@ -42,6 +69,7 @@ class Solver{
         Problem<T> _problem;
         SolverStats<T> _stats;
         Solution<T> _solution;
+        SolverSettings<T> _settings;
 
     public:
 
@@ -53,18 +81,105 @@ class Solver{
         /**
          * 
         */
-        Solver(Problem<T>& problem){
+        Solver(Problem<T>& problem, SolverSettings<T>& settings){
 
             _problem = problem;
+            _settings = settings;
+
             std::cout << "\tConstructing solution\n";
-            _solution = Solution<real_t>(_problem);
+            _solution = Solution<T>(_problem);
         }
+
+
+        /**
+         * 
+        */
+        T advection(int axis, int i, int j=0, int k=0){
+
+
+            T adv = 0.0;
+
+            switch(axis){
+                case 0:
+                    //adv = du2dx - duvdy - duwdz;
+                    break;
+                case 1:
+                    //adv = duvdx - dv2dy - dvwdz;
+                    break;
+                case 2:
+                    //adv = duwdx - dvwdy - dw2dx;
+                    break;
+                default:
+                    throw std::invalid_argument("Invalid dimension.");
+
+            }
+
+            return adv;
+        }
+
+        /**
+         * 
+        */
+        T diffusion(int axis, int i, int j=0, int k=0){
+
+            auto dim = _problem.geometry().dimension();
+            auto dh = _problem.geometry().cell_sizes();
+
+            auto& UVW = _solution.velocity_component(axis);
+
+            T ans = 0.0;            
+            T num = 0.0;
+
+            for(int d=0; d<dim; d++){
+                switch(d){
+                    case 0:
+                        num = (UVW(i+1,j,k) + 2*UVW(i,j,k) + UVW(i-1,j,k));
+                        break;
+                    case 1:
+                        num = (UVW(i,j+1,k) + 2*UVW(i,j,k) + UVW(i,j-1,k));
+                        break;
+                    case 2:
+                        num = (UVW(i,j,k+1) + 2*UVW(i,j,k) + UVW(i,j,k-1));
+                        break;
+                    default:
+                        break;
+                }
+                ans += num/(dh[d]*dh[d]);
+            }
+            return ans;
+       }
 
         /**
          * 
         */
         void compute_momenta(){
 
+            auto Re = _problem.flow_parameters().Re();
+            auto dt = _problem.timestepper().dt();
+
+            auto dim = _problem.geometry().dimension();
+
+            auto imax = _problem.geometry().ncells()[0]-1;
+            auto jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 0;
+            auto kmax = (dim == 3) ? _problem.geometry().ncells()[2]-1 : 0;
+
+            for(int d=0; d<dim; d++){
+                auto& UVW = _solution.velocity_component(d);
+                auto& FGH = _solution.tentative_momentum(d);
+
+                auto& body_forces = _problem.flow_parameters().body_forces();
+
+                for (int k=1; k<kmax; k++){
+                    for(int j=1; j<jmax; j++){
+                        for(int i=1; i<imax; i++){
+                            FGH(i,j,k) += UVW(i,j,k);
+                            auto diff = diffusion(d,i,j,k);
+                            auto advect = advection(d,i,j,k);
+                            FGH(i,j,k) += dt*(Re*diff - advect + body_forces[d]);
+                        }
+                    }
+                }
+            }
         }
 
         /**
@@ -96,11 +211,15 @@ class Solver{
             // Apply boundary conditions
             std::cout << "Applying boundary conditions:\n";
             _problem.boundaries().apply_conditions(_solution);
+            std::cout << "Applying boundary motions\n";
+            _problem.boundaries().apply_motions(_solution);
 
-            _solution.U.print_field2d(0);
-            _solution.V.print_field2d(0);
+            //_solution.U.print_field2d(0);
+            //_solution.V.print_field2d(0);
 
             // Compute momenta
+            compute_momenta();
+            _solution.F.print_field2d(0);
 
             // Construct the right-hand side of the pressure equation
 
@@ -112,9 +231,9 @@ class Solver{
         void solve(){
 
             auto tmax = _problem.timestepper().max_time();
-
+            int step_count = 0;
             do{
-
+                step_count++;
                 std::cout << "Taking step t = "
                           << _problem.timestepper().current_time()
                           << "\n";
@@ -131,6 +250,9 @@ class Solver{
                 _problem.timestepper().advance(cell_sizes, Re, max_vels);
 
                 // Save Timestep Solution
+                //if(step_count % write_every == 0){
+                //  _solution.to_vtk(fname);
+                //}
                 throw;
                 
             } while (_problem.timestepper().current_time() <= tmax);

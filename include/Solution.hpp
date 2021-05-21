@@ -132,6 +132,38 @@ struct Solution{
         }
         return max;
     }
+
+    /**
+     * 
+    */
+    NDArray<T>& velocity_component(int dim){
+        switch(dim){
+            case 0:
+                return U;
+            case 1:
+                return V;
+            case 2:
+                return W;
+            default:
+                throw std::invalid_argument("Invalid dimension.");
+        }
+    }
+
+    /**
+     * 
+    */
+    NDArray<T>& tentative_momentum(int dim){
+        switch(dim){
+            case 0:
+                return F;
+            case 1:
+                return G;
+            case 2:
+                return H;
+            default:
+                throw std::invalid_argument("Invalid dimension.");
+        }
+    }
 };
 
 #endif

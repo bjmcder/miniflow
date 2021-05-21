@@ -10,6 +10,7 @@
 #include "Geometry.hpp"
 #include "Problem.hpp"
 #include "TimeStepper.hpp"
+#include "Solver.hpp"
 
 template<typename T>
 class Input{
@@ -315,6 +316,18 @@ class Input{
                                  reynolds,
                                  ivels,
                                  bforces);
+    }
+
+    /**
+     * 
+    */
+    SolverSettings<T> build_solver_settings(){
+        auto gamma = _toml_dat.get<T>("solver.upwind_factor");
+        auto omega = _toml_dat.get<T>("solver.relax_factor");
+        auto tol = _toml_dat.get<T>("solver.tolerance");
+        auto max_it = _toml_dat.get<int>("solver.max_iters");
+
+        return SolverSettings<T>(gamma, omega, tol, max_it);
     }
 
     /**
