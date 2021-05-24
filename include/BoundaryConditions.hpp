@@ -263,7 +263,152 @@ class BoundaryConditions{
         /**
          * 
         */
-        void apply_motions(Solution<T>& sol){
+        void apply_motions(Solution<T>& field){
+            
+            int dim = _motion.size()/2;
+
+            for (int i=0; i<_motion.size(); i++){
+
+                int kmax = 0;
+                
+                if (_motion[i] == 0.0) continue;
+
+                T vel = 2.0*_motion[i];
+
+                switch(i){
+
+                    case WEST:
+
+                        switch(dim){
+                            case 1:
+                                break;
+                            case 2:
+                                for(int j=0; j<field.shape[1]; j++){
+                                    field.V(0,j) += vel;
+                                }
+                                break;
+                            case 3:
+                                for(int i=0; i<field.shape[2]; i++){
+                                    for(int j=0; j<field.shape[1]; j++){
+                                        field.W(0,j,i) += vel;
+                                    }
+                                }
+                                break;
+                            default:
+                                throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+                        
+                    case EAST:
+
+                        kmax = field.shape[0]-1;
+
+                        switch(dim){
+
+                            case 1:
+                                break;
+
+                            case 2:
+                                for(int j=0; j<field.shape[1]; j++){
+                                    field.V(kmax, j) += vel; 
+                                }
+                                break;
+
+                            case 3:
+                                for(int i=0; i<field.shape[2]; i++){
+                                    for(int j=0; j<field.shape[1]; j++){
+                                        field.V(kmax,j,i) += vel;
+                                    }
+                                }
+                                break;
+
+                            default:
+                                throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+
+                    case SOUTH:
+
+                        switch(dim){
+                            case 2:
+                                for(int j=0; j<field.shape[0]; j++){
+                                    field.U(j,0) += vel;
+                                }
+                                break;
+
+                            case 3:
+                                for(int i=0; i<field.shape[2]; i++){
+                                    for(int j=0; j<field.shape[0]; j++){
+                                        field.U(j,0,i) += vel;
+                                    }
+                                }
+                                break;
+
+                            default:
+                                throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+
+                    case NORTH:
+                        kmax = field.shape[1]-1;
+
+                        switch(dim){
+                            case 2:
+                                for(int j=0; j<field.shape[0]; j++){
+                                    field.U(j,kmax) += vel;
+                                }
+                                break;
+
+                            case 3:
+                                for(int i=0; i<field.shape[1]; i++){
+                                    for(int j=0; j<field.shape[0]; j++){
+        
+                                        field.U(j,kmax,i) += vel;
+                                    }
+                                }
+                                break;
+
+                            default:
+                                throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+                    case DOWN:
+
+                        switch (dim){
+                            case 3:
+                                for(int i=0; i<field.shape[2]; i++){
+                                    for(int j=0; j<field.shape[0]; j++){
+
+                                        field.U(j,i,0) += vel;
+                                    }   
+                                }
+                            break;
+                        
+                        default:
+                            throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+
+                    case UP:
+                        kmax = field.shape[2]-1;
+                        switch (dim){
+                            case 3:
+                                for(int i=0; i<field.shape[2]; i++){
+                                    for(int j=0; j<field.shape[0]; j++){
+
+                                        field.U(j,i,kmax) += vel;
+                                    }   
+                                }
+                            break;
+                        
+                        default:
+                            throw std::invalid_argument("Invalid dimension");
+                        }
+                        break;
+                    default:
+                        throw std::invalid_argument("Invalid boundary direction.");
+                }
+            } 
 
         }
 };
