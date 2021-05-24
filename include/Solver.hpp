@@ -90,24 +90,88 @@ class Solver{
             _solution = Solution<T>(_problem);
         }
 
+        T avg(T item1, T item2){
+            return 0.5*(item1+item2);
+        }
+
+        /**
+         * 
+        */
+        T derivative(int axis1, int axis2=0, int i=0, int j=0, int k=0){
+
+            auto dh = _problem.geometry().cell_sizes();
+            auto gamma = _settings.upwind_factor;
+
+            T central = 0.0;
+            T upwind = 0.0;
+
+            auto& S1 = _solution.tentative_momentum(axis1);
+            auto& S2 = _solution.tentative_momentum(axis2);
+
+            auto base_idx = std::vector<size_t>({(size_t)i,(size_t)j,(size_t)k});
+
+            auto fwd_idx1 = base_idx;
+            auto fwd_idx2 = base_idx;
+
+            fwd_idx1[axis2] += 1;
+            fwd_idx2[axis1] += 1;
+
+            T central_fwd = avg(S1(base_idx), S1(fwd_idx1)); 
+            central_fwd *= avg(S2(base_idx), S2(fwd_idx2));
+
+            auto bwd_idx1 = base_idx;
+            auto bwdfwd_idx1 = base_idx;
+            auto bwd_idx2 = base_idx;
+
+            bwd_idx1[axis1] -= 1;
+            bwdfwd_idx1[axis1] -= 1;
+            bwdfwd_idx1[axis2] += 1;
+            bwd_idx2[axis1] -= 1;
+
+            T central_bwd = avg(S1(bwd_idx1), S1(bwdfwd_idx1));
+            central_bwd *= avg(S2(bwd_idx2), S2(base_idx));
+        
+            central = (1/dh[axis2])*(central_fwd - central_bwd);
+            
+            T upwind_fwd = fabs(avg(S1(base_idx), S1(fwd_idx1)));
+            upwind_fwd *= avg(S2(base_idx), -S2(fwd_idx2));
+
+            T upwind_bwd = fabs(avg(S1(bwd_idx1), S1(bwdfwd_idx1)));
+            upwind_bwd *= avg(S2(bwd_idx2), -S2(base_idx));
+
+            upwind = (1/dh[axis2])*(upwind_fwd - upwind_bwd);
+
+            return central + gamma*upwind;
+
+        }
 
         /**
          * 
         */
         T advection(int axis, int i, int j=0, int k=0){
 
-
             T adv = 0.0;
-
+            T du2dx(0), duvdy(0), duwdz(0);
+            T duvdx(0), dv2dy(0), dvwdz(0);
+            T duwdx(0), dvwdy(0), dw2dz(0);
             switch(axis){
                 case 0:
-                    //adv = du2dx - duvdy - duwdz;
+                    du2dx = derivative(axis, axis, i, j, k);
+                    duvdy = derivative(axis, 1, i, j, k);
+                    duwdz = derivative(axis, 2, i, j, k);
+                    adv = du2dx - duvdy - duwdz;
                     break;
                 case 1:
-                    //adv = duvdx - dv2dy - dvwdz;
+                    duvdx = derivative(axis, 0, i, j, k);
+                    dv2dy = derivative(axis, axis, i, j, k);
+                    dvwdz = derivative(axis, 2, i, j, k);
+                    adv = duvdx - dv2dy - dvwdz;
                     break;
                 case 2:
-                    //adv = duwdx - dvwdy - dw2dx;
+                    duwdx = derivative(axis, 0, i, j, k); 
+                    dvwdy = derivative(axis, 1, i, j, k);
+                    dw2dz = derivative(axis, axis, i,j,k);
+                    adv = duwdx - dvwdy - dw2dz;
                     break;
                 default:
                     throw std::invalid_argument("Invalid dimension.");
@@ -214,12 +278,10 @@ class Solver{
             std::cout << "Applying boundary motions\n";
             _problem.boundaries().apply_motions(_solution);
 
-            //_solution.U.print_field2d(0);
-            //_solution.V.print_field2d(0);
-
             // Compute momenta
             compute_momenta();
             _solution.F.print_field2d(0);
+            _solution.G.print_field2d(0);
 
             // Construct the right-hand side of the pressure equation
 

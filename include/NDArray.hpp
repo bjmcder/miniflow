@@ -45,14 +45,20 @@ public:
     template<typename ...Args>
     inline size_t get_index(size_t const & arg0, Args const & ... args){
 
-        // Here we need to recursively compute the flattened index.
-        // l*(sizek*sizej*sizei)+ k*(size_i*size_j) + j*(size_i) + i
-        size_t index = 0;
-
         auto ix = std::vector<size_t>({(size_t)arg0, (size_t)args...});
+
+        return get_index(ix);
+    }
+
+    /***/
+    inline size_t get_index(const std::vector<size_t>& ix){
+
+        size_t index = 0;
 
         index += ix[0];
 
+        // Here we need to recursively compute the flattened index.
+        // l*(sizek*sizej*sizei)+ k*(size_i*size_j) + j*(size_i) + i
         for(size_t i=1; i<ix.size(); i++){
 
             auto dprod = 1;
@@ -168,6 +174,15 @@ class NDArray{
     template<typename ...Args>
     inline T& operator()(size_t const & arg0, Args const & ... args){
         auto ix =  _indexer.get_index(arg0, args...);
+        return _data[ix];
+    }
+
+    /**
+     * Function call operator for convenient indexing. No bounds checking.
+    */
+    template<typename ...Args>
+    inline T& operator()(const std::vector<size_t>& vals){
+        auto ix =  _indexer.get_index(vals);
         return _data[ix];
     }
 
