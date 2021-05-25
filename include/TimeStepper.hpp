@@ -22,6 +22,7 @@ class TimeStepper{
          * 
         */
         TimeStepper(const T& t_max, const T& tau, const T& dt_0 = 0){
+
             _max_time = t_max;
             _step_factor = tau;
             _dt = dt_0;

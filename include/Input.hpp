@@ -211,13 +211,13 @@ class Input{
     */
     TimeStepper<T> build_timestepper(){
 
-        auto max_time = _toml_dat.get<T>("time.max_time");
-        auto tau = _toml_dat.get<T>("time.step_factor");
-        auto dt0 = 0;
+        T max_time = _toml_dat.get<T>("time.max_time");
+        T tau = _toml_dat.get<T>("time.step_factor");
+        T dt0 = 0.0;
+
         if (_toml_dat.has("time.dt_start")){
             dt0 = _toml_dat.get<T>("time.dt_start");
         }
-
         return TimeStepper<T>(max_time, tau, dt0);
     }
 
@@ -229,9 +229,6 @@ class Input{
 
         auto conditions = _toml_dat.get<toml::Table>("boundary.conditions");
         auto motion = _toml_dat.get<toml::Table>("boundary.motion");
-
-        std::cout << conditions << std::endl;
-        std::cout << motion << std::endl;
 
         // We don't loop here because the ordering of the boundaries in the
         // input is not guaranteed. We enforce the ordering explicitly

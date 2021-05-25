@@ -87,16 +87,24 @@ struct Solution{
                   U.data().end(), 
                   problem.flow_parameters().initial_velocities()[0]);
 
+        F.zeros();
+        rhs.zeros();
+        pressure.zeros();
+
         if (shape.size() > 1){
             std::fill(V.data().begin(),
                   V.data().end(), 
                   problem.flow_parameters().initial_velocities()[1]);
+
+            G.zeros();
         }
 
         if (shape.size() > 2){
             std::fill(W.data().begin(),
                   W.data().end(), 
                   problem.flow_parameters().initial_velocities()[2]);
+
+            H.zeros();
         }
     }
 

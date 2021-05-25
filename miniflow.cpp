@@ -26,14 +26,10 @@ int main(int argc, char** argv){
     auto flow_params = indat.build_flow_params();
     auto solver_settings = indat.build_solver_settings();
 
-    std::cout << "constructing problem\n";
     auto problem = Problem<real_t>(geom, tstepper, bcs, flow_params);
 
-    std::cout << "constructing solver\n";
     auto solver = Solver<real_t>(problem, solver_settings);
 
-    std::cout << "solving the problem\n";
-    // Solve the problem
     solver.solve();
     
     return 0;
