@@ -82,14 +82,21 @@ class TimeStepper{
             std::vector<T> comparands;
             auto max_components = max_vels;
             for (int i=0; i<max_components.size(); i++){
-                comparands.push_back(i/max_components[i]);
+                if(max_components[i] == 0.0) comparands.push_back(0.0);
+                else comparands.push_back(cell_sizes[i]/max_components[i]);
             }
             
             comparands.push_back(A);
 
-            auto dt_new = tau * (*std::min_element(comparands.begin(), comparands.end()));
+            for (auto it: comparands){std::cout << it << "   ";}
+            std::cout << "\n";
 
-            _dt = dt_new; 
+            auto dt_new = tau * (*std::min_element(comparands.begin(), comparands.end()));
+            if(dt_new == 0) dt_new = 0.001;
+            std::cout << dt_new << "\n";
+
+            _dt = dt_new;
+            _current_time += _dt; 
         }
 };
 

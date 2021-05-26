@@ -43,7 +43,8 @@ template<typename T>
 struct SolverStats{
 
     int itercount;
-    T residual;
+    T residual_sumsquares;
+    T residual_max;
     T l2_norm;
     T linf_norm;
 
@@ -53,9 +54,14 @@ struct SolverStats{
 
     void reset(){
         itercount = 0;
-        residual = std::numeric_limits<T>::max();
-        l2_norm = std::numeric_limits<T>::max();
-        linf_norm = std::numeric_limits<T>::max();
+        reset_norm();
+    }
+
+    void reset_norm(){
+        residual_sumsquares = 0;
+        residual_max = 0;
+        l2_norm = 0;
+        linf_norm = 0;
     }
 };
 
@@ -63,8 +69,6 @@ template<typename T>
 class Solver{
 
     private:
-
-        int _max_iters;
 
         Problem<T> _problem;
         SolverStats<T> _stats;
@@ -161,14 +165,18 @@ class Solver{
             switch(axis){
                 case 0:
                     du2dx = upwind_difference(axis, axis, i, j, k);
+                    std::cout << "du2/dx = " << du2dx << "\n";
                     if(dim > 1) duvdy = upwind_difference(axis, 1, i, j, k);
+                    std::cout << "duv/dy = " << duvdy << "\n";
                     if(dim > 2) duwdz = upwind_difference(axis, 2, i, j, k);
 
                     adv = du2dx - duvdy - duwdz;
                     break;
                 case 1:
                     duvdx = upwind_difference(axis, 0, i, j, k);
+                    std::cout << "duv/dx = " << duvdx << "\n";
                     dv2dy = upwind_difference(axis, axis, i, j, k);
+                    std::cout << "dv2/dy = " << dv2dy << "\n";
                     if(dim > 2) dvwdz = upwind_difference(axis, 2, i, j, k);
 
                     adv = duvdx - dv2dy - dvwdz;
@@ -255,7 +263,7 @@ class Solver{
                 do{
                     int j = (dim > 1) ? 1 : 0;
                     do{
-                        for(int i=1; i<imax; i++){
+                        for(int i=1; i<=imax; i++){
 
                             auto diff = diffusion(d,i,j,k);
                             auto advect = advection(d,i,j,k);
@@ -263,9 +271,9 @@ class Solver{
                             FGH(i,j,k) += dt*((inv_Re)*diff - advect + body_forces[d]);
                         }
                         j++;
-                    }while(j<jmax);
+                    }while(j<=jmax);
                     k++;
-                }while(k<kmax);
+                }while(k<=kmax);
             }
         }
 
@@ -273,11 +281,13 @@ class Solver{
          * 
         */
         void compute_rhs(){
+
             auto dt = _problem.timestepper().dt();
             auto dh = _problem.geometry().cell_sizes();
             auto dim = _problem.geometry().dimension();
 
             auto& RHS = _solution.rhs;
+            RHS.zeros();
 
             auto imax = _problem.geometry().ncells()[0]-1;
             auto jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 1;
@@ -297,8 +307,9 @@ class Solver{
                             auto rhs_idx = std::vector<size_t>({(size_t)i,(size_t)j,(size_t)k});
                             rhs_idx[d] -= 1;
 
-                            RHS(i,j,k) += FGH(i,j,k) - FGH(rhs_idx);
-                            RHS(i,j,k) /= dh[d]*dt;
+                            RHS(i,j,k) += (FGH(i,j,k) - FGH(rhs_idx));
+                            RHS(i,j,k) /= dh[d];
+                            RHS(i,j,k) /= dt;
                         }
                         j++;
                     }while(j<jmax);
@@ -312,6 +323,8 @@ class Solver{
         */
         void sor_iteration(){
 
+            _stats.reset_norm();
+
             auto dt = _problem.timestepper().dt();
             auto dh = _problem.geometry().cell_sizes();
             auto dim = _problem.geometry().dimension();
@@ -324,18 +337,112 @@ class Solver{
             auto jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 1;
             auto kmax = (dim == 3) ? _problem.geometry().ncells()[2]-1 : 1;
 
+            auto psum = std::inner_product(P.data().begin(),
+                                           P.data().end(),
+                                           P.data().begin(),
+                                           0.0);
+
             // Copy the adjacent pressures into the boundary cells
+            int k = (dim > 2) ? 1 : 0;
+            do{
+                int j = (dim > 1) ? 1 : 0;
+                do{
+                    for(int i=0; i<=imax; i++){
+                        P(0,j,k) = P(1,j,k);
+                        P(imax,j,k) = P(imax-1,j,k);
 
-            // Now solve for the pressures in the internal cells.
-            //P(i,j,k) = (1-omega)*P(i,j,k) + ;
+                        P(i,0,k) = P(i,1,k);
+                        P(i,jmax,k) = P(i,jmax-1,k);
 
+                        P(i,j,0) = P(i,j,1);
+                        P(i,j,kmax) = P(i,j,kmax-1);
+                    }
+                    j++;
+                }while(j<=jmax);
+                k++;
+            }while (k<=kmax);
+
+            // Pre-compute beta = omega/(2/dx^2 + 2/dy^2 +...)
+            std::vector<T> dh2;
+            std::transform(dh.begin(),
+                           dh.end(),
+                           std::back_inserter(dh2),
+                            [](T h){return h*h;});
+            
+            T D1 = 0.0;
+            for(const auto& val: dh2){
+                D1 += 2.0/val;
+            }
+            T beta = omega/D1;
+
+            // Solve for the pressures in the internal cells
+            k = (dim > 2) ? 1 : 0;
+            do{
+                int j = (dim > 1) ? 1 : 0;
+                do{
+                    for(int i=0; i<imax; i++){
+                        
+                        auto base_idx = std::vector<size_t>({(size_t)i,
+                                                             (size_t)j,
+                                                             (size_t)k});
+                        // Apply the overrelaxation term
+                        P(i,j,k) *= (1-omega);
+                        
+                        // Compute pressure spatial differences and residual 
+                        T dpdh = 0.0;
+                        T res = 0.0;
+
+                        for (int d=0; d<dim; d++){
+
+                            auto fwd_idx = base_idx;
+                            auto bwd_idx = base_idx;
+                            fwd_idx[d] += 1;
+                            bwd_idx[d] -= 1;
+
+                            dpdh += (P(fwd_idx) + P(bwd_idx))/dh2[d];
+                            res += (P(fwd_idx) - P(bwd_idx))/dh2[d];
+
+                        }
+
+                        P(i,j,k) += beta*(dpdh-RHS(i,j,k));
+
+                        // Update residuals
+                        res -= RHS(i,j,k);
+                        res = fabs(res);
+
+                        auto& res_sq = _stats.residual_sumsquares;
+                        res_sq += res*res;
+
+                        auto& res_max = _stats.residual_max;
+                        res_max = res > res_max ? res : res_max;
+                    }
+                    j++;
+                }while(j<jmax);
+                k++;
+            }while (k<kmax);
+
+
+            compute_norms();
+
+            _stats.l2_norm /= psum;
+            _stats.linf_norm /= psum;
         }
 
         /**
          * 
         */
-        void compute_norm(){
+        void compute_norms(){
 
+            auto nelem = _problem.geometry().total_cells();
+
+            const auto& res_sq = _stats.residual_sumsquares;
+            const auto& res_max = _stats.residual_max;
+
+            auto& l2 = _stats.l2_norm;
+            l2 = sqrt(res_sq/nelem);
+
+            auto& l_inf = _stats.linf_norm;
+            l_inf = _stats.residual_max;
         }
 
         /**
@@ -346,15 +453,62 @@ class Solver{
             _stats.reset();
 
             auto& iter = _stats.itercount;
+            const auto& max_iters = _settings.max_iters;
 
             do{
+                std::cout << "iter = " << iter << " of " << max_iters << "\n";
                 sor_iteration();
-                compute_norm();
+
+                std::cout << "L_2 = " << _stats.l2_norm << "\tL_inf = " << _stats.linf_norm << "\n";
                 iter++;
+                
+            }while (iter < max_iters);
+                            std::cout << "*** P (iter = " << iter << ")***\n";
+            _solution.pressure.print_field2d(0);
 
-                throw std::runtime_error("Stopping iteration.");
+        }
 
-            }while (_stats.itercount < _max_iters);
+        /**
+         * 
+        */
+        void update_velocity(){
+            
+            auto dt = _problem.timestepper().dt();
+            auto dh = _problem.geometry().cell_sizes();
+            auto dim = _problem.geometry().dimension();
+
+            auto& P = _solution.pressure;
+
+            auto imax = _problem.geometry().ncells()[0]-1;
+            auto jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 1;
+            auto kmax = (dim == 3) ? _problem.geometry().ncells()[2]-1 : 1;
+
+            for(int d=0; d<dim; d++){
+
+                auto& UVW = _solution.velocity_component(d);
+                auto& FGH = _solution.tentative_momentum(d);
+
+                int k = (dim > 2) ? 1 : 0;
+                do{
+                    int j = (dim > 1) ? 1 : 0;
+                    do{
+                        for(int i=1; i<imax; i++){
+
+                            auto base_idx = std::vector<size_t>({(size_t)i,
+                                                                (size_t)j,
+                                                                (size_t)k});
+                            auto fwd_idx = base_idx;
+                            fwd_idx[d] += 1;
+
+                            auto dP = P(fwd_idx)-P(base_idx);
+
+                            UVW(i,j,k) = FGH(i,j,k) - (dt/dh[d])*(dP);
+                        }
+                        j++;
+                    }while(j<jmax);
+                    k++;
+                }while (k<kmax);
+            }
         }
 
         /**
@@ -385,9 +539,18 @@ class Solver{
 
             std::cout << "*** RHS ***\n";
             _solution.rhs.print_field2d(0);
+            std::cout << "RHS size = " << _solution.rhs.size() << "\n";
 
             // Solve for the pressure
             solve_pressure();
+
+            // Update the velocity components
+            update_velocity();
+
+            std::cout << "*** U ***\n";
+            _solution.U.print_field2d(0);
+            std::cout << "*** V ***\n";
+            _solution.V.print_field2d(0);
         }
 
         /**
@@ -396,6 +559,7 @@ class Solver{
         void solve(){
 
             auto tmax = _problem.timestepper().max_time();
+
             int step_count = 0;
             do{
                 step_count++;
@@ -406,6 +570,8 @@ class Solver{
 
                 // Solve the current timestep
                 step();
+                if (step_count == 2)
+                            throw std::runtime_error("Stopping iteration.");
 
                 // Adaptively advance the timestepper
                 auto dim = _problem.geometry().dimension();
@@ -420,7 +586,7 @@ class Solver{
                 //if(step_count % write_every == 0){
                 //  _solution.to_vtk(fname);
                 //}
-                
+
             } while (_problem.timestepper().current_time() <= tmax);
         }
 };
