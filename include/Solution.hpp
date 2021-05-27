@@ -1,14 +1,15 @@
 #ifndef __SOLUTION_HPP
 #define __SOLUTION_HPP
 
+#include <array>
 #include <cmath>
 #include <vector>
 
-#include "NDArray.hpp"
+#include "Field3D.hpp"
 #include "Problem.hpp"
 
 template<typename T>
-class NDArray; 
+class Field3; 
 
 template<typename T>
 class Problem;
@@ -18,19 +19,19 @@ struct Solution{
 
     std::vector<int> shape;
 
-    NDArray<T> U;
-    NDArray<T> V;
-    NDArray<T> W;
+    Field3<T> U;
+    Field3<T> V;
+    Field3<T> W;
 
-    NDArray<T> pressure;
+    Field3<T> pressure;
 
-    NDArray<T> F;
-    NDArray<T> G;
-    NDArray<T> H;
-    NDArray<T> rhs;
+    Field3<T> F;
+    Field3<T> G;
+    Field3<T> H;
+    Field3<T> rhs;
 
-    //NDArray<T> vorticity;
-    //NDArray<T> temperature;
+    //Field3<T> vorticity;
+    //Field3<T> temperature;
 
     /**
      * Default constructor (does nothing).
@@ -63,67 +64,44 @@ struct Solution{
     */
     void set_array_sizes(const std::vector<size_t>& shape){
 
-        U = NDArray<T>(shape);
-        F = NDArray<T>(shape);
-        pressure = NDArray<T>(shape);
-        rhs = NDArray<T>(shape);
+        U = Field3<T>(shape);
+        V = Field3<T>(shape);
+        W = Field3<T>(shape);
 
-        if (shape.size()>1){
-            V = NDArray<T>(shape);
-            G = NDArray<T>(shape);
-        }
-        if (shape.size() > 2){
-            W = NDArray<T>(shape);
-            H = NDArray<T>(shape);
-        }
+        F = Field3<T>(shape);
+        G = Field3<T>(shape);
+        H = Field3<T>(shape);
+
+        pressure = Field3<T>(shape);
+        rhs = Field3<T>(shape);
     }
 
     /**
      * 
     */
     void initialize_solution(Problem<T>& problem){
-
-        std::fill(U.data().begin(),
-                  U.data().end(), 
-                  problem.flow_parameters().initial_velocities()[0]);
+        
+        U.fill(problem.flow_parameters().initial_velocities()[0]);
+        V.fill(problem.flow_parameters().initial_velocities()[1]);
+        W.fill(problem.flow_parameters().initial_velocities()[2]);
 
         F.zeros();
+        G.zeros();
+        H.zeros();
+
         rhs.zeros();
         pressure.zeros();
-
-        if (shape.size() > 1){
-            std::fill(V.data().begin(),
-                  V.data().end(), 
-                  problem.flow_parameters().initial_velocities()[1]);
-
-            G.zeros();
-        }
-
-        if (shape.size() > 2){
-            std::fill(W.data().begin(),
-                  W.data().end(), 
-                  problem.flow_parameters().initial_velocities()[2]);
-
-            H.zeros();
-        }
     }
 
     /**
      * 
     */
-    std::vector<T> max_velocity_components(int dim){
-        std::vector<T> max_components;
+    std::array<T,3> max_velocity_components(){
+        std::array<T,3> max_components;
 
-        max_components.resize(dim);
         max_components[0] = absmax(U.data());
-
-        if(dim>1){
-            max_components[1] = absmax(V.data());
-        }
-
-        if(dim>2){
-            max_components[2] = absmax(W.data());
-        }
+        max_components[1] = absmax(V.data());
+        max_components[2] = absmax(W.data());
 
         return max_components;
     }
@@ -144,7 +122,7 @@ struct Solution{
     /**
      * 
     */
-    NDArray<T>& velocity_component(int dim){
+    Field3<T>& velocity_component(int dim){
         switch(dim){
             case 0:
                 return U;
@@ -160,7 +138,7 @@ struct Solution{
     /**
      * 
     */
-    NDArray<T>& tentative_momentum(int dim){
+    Field3<T>& tentative_momentum(int dim){
         switch(dim){
             case 0:
                 return F;

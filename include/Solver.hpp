@@ -576,8 +576,8 @@ class Solver{
             auto& P = _solution.pressure;
 
             auto imax = _problem.geometry().ncells()[0]-1;
-            auto jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 1;
-            auto kmax = (dim == 3) ? _problem.geometry().ncells()[2]-1 : 1;
+            auto jmax = _problem.geometry().ncells()[1]-1;
+            auto kmax = _problem.geometry().ncells()[2]-1;
 
             for(int d=0; d<dim; d++){
 
