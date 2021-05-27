@@ -102,6 +102,20 @@ class Solver{
         /**
          * 
         */
+        std::string idx_to_str(std::vector<size_t>& idxs){
+            std::string str = "(";
+
+            for(const auto& idx: idxs){
+                str += std::to_string(idx);
+                str += ", ";
+            }
+            str += ")";
+            return str;
+        }
+
+        /**
+         * 
+        */
         T upwind_difference(int axis1, int axis2=0, int i=0, int j=0, int k=0){
 
             auto dh = _problem.geometry().cell_sizes();
@@ -114,15 +128,14 @@ class Solver{
             auto& S2 = _solution.tentative_momentum(axis2);
 
             auto base_idx = std::vector<size_t>({(size_t)i,(size_t)j,(size_t)k});
-
             auto fwd_idx1 = base_idx;
             auto fwd_idx2 = base_idx;
 
             fwd_idx1[axis2] += 1;
             fwd_idx2[axis1] += 1;
 
-            T central_fwd = avg(S1(base_idx), S1(fwd_idx1)); 
-            central_fwd *= avg(S2(base_idx), S2(fwd_idx2));
+            T central_fwd = avg(S2(base_idx), S2(fwd_idx1));
+            central_fwd *= avg(S1(base_idx), S1(fwd_idx2));
 
             auto bwd_idx1 = base_idx;
             auto bwdfwd_idx1 = base_idx;
@@ -133,27 +146,39 @@ class Solver{
             bwdfwd_idx1[axis2] += 1;
             bwd_idx2[axis1] -= 1;
 
-            T central_bwd = avg(S1(bwd_idx1), S1(bwdfwd_idx1));
-            central_bwd *= avg(S2(bwd_idx2), S2(base_idx));
+            T central_bwd = avg(S2(bwd_idx2), S2(bwdfwd_idx1));
+            central_bwd *= avg(S1(bwd_idx2), S1(base_idx));
         
             central = (1/dh[axis2])*(central_fwd - central_bwd);
             
-            T upwind_fwd = fabs(avg(S1(base_idx), S1(fwd_idx1)));
-            upwind_fwd *= avg(S2(base_idx), -S2(fwd_idx2));
+            T upwind_fwd = fabs(avg(S2(base_idx), S2(fwd_idx1)));
+            upwind_fwd *= avg(S1(base_idx), -S1(fwd_idx2));
 
-            T upwind_bwd = fabs(avg(S1(bwd_idx1), S1(bwdfwd_idx1)));
-            upwind_bwd *= avg(S2(bwd_idx2), -S2(base_idx));
+            T upwind_bwd = fabs(avg(S2(bwd_idx2), S2(bwdfwd_idx1)));
+            upwind_bwd *= avg(S1(bwd_idx2), -S1(base_idx));
 
             upwind = (1/dh[axis2])*(upwind_fwd - upwind_bwd);
 
             return central + gamma*upwind;
-
         }
 
         /**
          * 
         */
         T advection(int axis, int i, int j=0, int k=0){
+            
+            constexpr bool DEBUG = false;
+            const std::string partial = "\u2202";
+
+            if constexpr(DEBUG){
+                std::cout << "*** Computing advection term for ";
+                if(axis == 0) std::cout << "U (";
+                if(axis == 1) std::cout << "V (";
+                if(axis == 2) std::cout << "W (";
+
+                std::cout << i << ", " << j << ", " << k << ") ***\n";
+
+            }
 
             int dim = _problem.geometry().dimension();
 
@@ -165,28 +190,52 @@ class Solver{
             switch(axis){
                 case 0:
                     du2dx = upwind_difference(axis, axis, i, j, k);
-                    std::cout << "du2/dx = " << du2dx << "\n";
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(u\u00b2)/" + partial + "x = ";
+                        std::cout << du2dx << "\n";
+                    }
                     if(dim > 1) duvdy = upwind_difference(axis, 1, i, j, k);
-                    std::cout << "duv/dy = " << duvdy << "\n";
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(uv)/" + partial + "y = ";
+                        std::cout << duvdy << "\n";
+                    }
                     if(dim > 2) duwdz = upwind_difference(axis, 2, i, j, k);
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(uw)/" + partial + "z = ";
+                        std::cout << duwdz << "\n";
+                    }
 
-                    adv = du2dx - duvdy - duwdz;
+                    adv = -du2dx - duvdy - duwdz;
                     break;
-                case 1:
-                    duvdx = upwind_difference(axis, 0, i, j, k);
-                    std::cout << "duv/dx = " << duvdx << "\n";
-                    dv2dy = upwind_difference(axis, axis, i, j, k);
-                    std::cout << "dv2/dy = " << dv2dy << "\n";
-                    if(dim > 2) dvwdz = upwind_difference(axis, 2, i, j, k);
 
-                    adv = duvdx - dv2dy - dvwdz;
+                case 1:
+
+                    duvdx = upwind_difference(axis, 0, i, j, k);
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(uv)" + partial + "x = ";
+                        std::cout << duvdx << "\n";
+                    }
+
+                    dv2dy = upwind_difference(axis, axis, i, j, k);
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(v\u00b2)" + partial + "y = ";
+                        std::cout << dv2dy << "\n";
+                    }
+
+                    if(dim > 2) dvwdz = upwind_difference(axis, 2, i, j, k);
+                    if constexpr (DEBUG){
+                        std::cout << partial + "(vw)" + partial + "z = ";
+                        std::cout << dvwdz << "\n";
+                    }
+
+                    adv = -duvdx - dv2dy - dvwdz;
                     break;
                 case 2:
                     duwdx = upwind_difference(axis, 0, i, j, k); 
                     dvwdy = upwind_difference(axis, 1, i, j, k);
                     dw2dz = upwind_difference(axis, axis, i,j,k);
 
-                    adv = duwdx - dvwdy - dw2dz;
+                    adv = -duwdx - dvwdy - dw2dz;
                     break;
                 default:
                     throw std::invalid_argument("Invalid dimension.");
@@ -200,6 +249,20 @@ class Solver{
         */
         T diffusion(int axis, int i, int j=0, int k=0){
 
+            constexpr bool DEBUG = false;
+            const std::string delsquared = "\u2207\u00b2";
+            if constexpr (DEBUG){
+                
+
+                std::cout << "*** Computing " << delsquared << " for ";
+                if(axis == 0) std::cout << "U ";
+                if(axis == 1) std::cout << "V ";
+                if(axis == 2) std::cout << "W ";
+
+                std::cout << "(" << i << ", " << j << ", " << k << ") ***\n";
+            }
+
+
             auto dim = _problem.geometry().dimension();
             auto dh = _problem.geometry().cell_sizes();
 
@@ -211,19 +274,50 @@ class Solver{
             for(int d=0; d<dim; d++){
                 switch(d){
                     case 0:
+                        // d^2x
                         num = (UVW(i+1,j,k) + 2*UVW(i,j,k) + UVW(i-1,j,k));
+
+                        if constexpr (DEBUG){
+                            std::cout << delsquared << "x = " << num << "\n";
+                        }
                         break;
+
                     case 1:
+                        // d^2y
                         num = (UVW(i,j+1,k) + 2*UVW(i,j,k) + UVW(i,j-1,k));
+
+                        if constexpr (DEBUG){
+                            std::cout << delsquared << "y = " << num << "\n";
+                        }
+                
                         break;
+
                     case 2:
+                        // d^2z
                         num = (UVW(i,j,k+1) + 2*UVW(i,j,k) + UVW(i,j,k-1));
+                        if constexpr (DEBUG){
+                            std::cout  << delsquared << "z = " << num << "\n";
+                        }
                         break;
                     default:
                         break;
                 }
+
+                if constexpr (DEBUG){
+                    std::cout << "h = " << dh[d] << " h\u00b2 = " << dh[d]*dh[d] << "\n";
+                }
+                // divide by dx^2, dy^2 or dz^2, as appropriate.
                 ans += num/(dh[d]*dh[d]);
             }
+
+            if constexpr (DEBUG){
+                std::cout << delsquared << "x ";
+                if (dim > 1) std::cout << "+ " << delsquared << "y ";
+                if (dim > 2) std::cout << "+ " << delsquared << "z ";
+
+                std::cout << "= " << ans << "\n\n";
+            }
+
             return ans;
        }
 
@@ -263,17 +357,17 @@ class Solver{
                 do{
                     int j = (dim > 1) ? 1 : 0;
                     do{
-                        for(int i=1; i<=imax; i++){
+                        for(int i=1; i<imax; i++){
 
                             auto diff = diffusion(d,i,j,k);
                             auto advect = advection(d,i,j,k);
                             
-                            FGH(i,j,k) += dt*((inv_Re)*diff - advect + body_forces[d]);
+                            FGH(i,j,k) += dt*((inv_Re)*diff + advect + body_forces[d]);
                         }
                         j++;
-                    }while(j<=jmax);
+                    }while(j<jmax);
                     k++;
-                }while(k<=kmax);
+                }while(k<kmax);
             }
         }
 
@@ -456,15 +550,17 @@ class Solver{
             const auto& max_iters = _settings.max_iters;
 
             do{
-                std::cout << "iter = " << iter << " of " << max_iters << "\n";
+                std::cout << "iter = " << iter << " of " << max_iters << " ";
                 sor_iteration();
 
                 std::cout << "L_2 = " << _stats.l2_norm << "\tL_inf = " << _stats.linf_norm << "\n";
                 iter++;
                 
-            }while (iter < max_iters);
-                            std::cout << "*** P (iter = " << iter << ")***\n";
-            _solution.pressure.print_field2d(0);
+            }while ((iter < max_iters) && 
+                    (_stats.l2_norm > _settings.tolerance));
+
+            //std::cout << "*** P (iter = " << iter << ")***\n";
+            //_solution.pressure.print_field2d(0);
 
         }
 
@@ -485,6 +581,13 @@ class Solver{
 
             for(int d=0; d<dim; d++){
 
+                if (d == 0) imax = imax - 1;
+                else imax = _problem.geometry().ncells()[0]-1;
+                if (d == 1) jmax = jmax - 1;
+                else jmax = (dim == 2) ? _problem.geometry().ncells()[1]-1 : 1;
+                if (d == 2) kmax = kmax - 1;
+                else kmax = (dim == 3) ? _problem.geometry().ncells()[2]-1 : 1;
+
                 auto& UVW = _solution.velocity_component(d);
                 auto& FGH = _solution.tentative_momentum(d);
 
@@ -492,7 +595,7 @@ class Solver{
                 do{
                     int j = (dim > 1) ? 1 : 0;
                     do{
-                        for(int i=1; i<imax; i++){
+                        for(int i=1; i<=imax; i++){
 
                             auto base_idx = std::vector<size_t>({(size_t)i,
                                                                 (size_t)j,
@@ -505,9 +608,9 @@ class Solver{
                             UVW(i,j,k) = FGH(i,j,k) - (dt/dh[d])*(dP);
                         }
                         j++;
-                    }while(j<jmax);
+                    }while(j<=jmax);
                     k++;
-                }while (k<kmax);
+                }while (k<=kmax);
             }
         }
 
@@ -520,26 +623,25 @@ class Solver{
             _problem.boundaries().apply_conditions(_solution);
             _problem.boundaries().apply_motions(_solution);
 
-            std::cout << "*** U ***\n";
+            /*std::cout << "*** U ***\n";
             _solution.U.print_field2d(0);
             std::cout << "*** V ***\n";
-            _solution.V.print_field2d(0);
+            _solution.V.print_field2d(0);*/
 
 
             // Compute momenta
             compute_momenta();
 
-            std::cout << "*** F ***\n";
+           /* std::cout << "*** F ***\n";
             _solution.F.print_field2d(0);
             std::cout << "*** G ***\n";
-            _solution.G.print_field2d(0);
+            _solution.G.print_field2d(0);*/
 
             // Construct the right-hand side of the pressure equation
             compute_rhs();
 
-            std::cout << "*** RHS ***\n";
-            _solution.rhs.print_field2d(0);
-            std::cout << "RHS size = " << _solution.rhs.size() << "\n";
+            /*std::cout << "*** RHS ***\n";
+            _solution.rhs.print_field2d(0);*/
 
             // Solve for the pressure
             solve_pressure();
@@ -570,8 +672,8 @@ class Solver{
 
                 // Solve the current timestep
                 step();
-                if (step_count == 2)
-                            throw std::runtime_error("Stopping iteration.");
+                //if (step_count == 1)
+                //            throw std::runtime_error("Stopping iteration.");
 
                 // Adaptively advance the timestepper
                 auto dim = _problem.geometry().dimension();
@@ -588,6 +690,9 @@ class Solver{
                 //}
 
             } while (_problem.timestepper().current_time() <= tmax);
+
+            std::cout << "Solution complete! (t = " 
+              << _problem.timestepper().current_time() << ")\n";
         }
 };
 

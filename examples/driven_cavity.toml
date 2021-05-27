@@ -2,20 +2,20 @@
 
 [geometry]
 dimension=2
-domain_size=[1.0, 1.0]
-num_cells=[5,5]
+domain_size=[0.25, 0.25]
+num_cells=[8,8]
 material_map=""
 
 [solver]
 upwind_factor=0.7
-relax_factor=1.7
+relax_factor=1.0
 tolerance=1e-3
-max_iters=100
+max_iters=5
 
 [time]
-max_time=10.0
+max_time=0.005
 step_factor=0.5
-dt_start=0.02
+dt_start=0.001
 
 [flow]
 reynolds=1000.0

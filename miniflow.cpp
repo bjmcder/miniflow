@@ -16,6 +16,8 @@ int main(int argc, char** argv){
         return 1; 
     }
 
+    std::cout << std::setprecision(12);
+
     // Load the input TOML file
     auto indat = Input<real_t>(argv[1]);
 

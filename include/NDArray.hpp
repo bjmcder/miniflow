@@ -202,8 +202,8 @@ class NDArray{
         auto ncols = this->shape()[0];
 
         auto sep = "    ";
-        auto prec = 3;
-        auto width = 8;
+        auto prec = 10;
+        auto width = 12;
 
         std::cout << "[";
         for (int i=0; i<ncols; i++){

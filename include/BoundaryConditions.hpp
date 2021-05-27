@@ -284,13 +284,13 @@ class BoundaryConditions{
                                 break;
                             case 2:
                                 for(int j=0; j<field.shape[1]; j++){
-                                    field.V(0,j) += vel;
+                                    field.V(0,j) = vel - field.V(1,j);
                                 }
                                 break;
                             case 3:
                                 for(int i=0; i<field.shape[2]; i++){
                                     for(int j=0; j<field.shape[1]; j++){
-                                        field.W(0,j,i) += vel;
+                                        field.W(0,j,i) = vel - field.W(0,j,i);
                                     }
                                 }
                                 break;
@@ -310,14 +310,14 @@ class BoundaryConditions{
 
                             case 2:
                                 for(int j=0; j<field.shape[1]; j++){
-                                    field.V(kmax, j) += vel; 
+                                    field.V(kmax, j) = vel - field.V(kmax-1, j); 
                                 }
                                 break;
 
                             case 3:
                                 for(int i=0; i<field.shape[2]; i++){
                                     for(int j=0; j<field.shape[1]; j++){
-                                        field.V(kmax,j,i) += vel;
+                                        field.V(kmax,j,i) = vel - field.V(kmax-1,j,i);
                                     }
                                 }
                                 break;
@@ -332,14 +332,14 @@ class BoundaryConditions{
                         switch(dim){
                             case 2:
                                 for(int j=0; j<field.shape[0]; j++){
-                                    field.U(j,0) += vel;
+                                    field.U(j,0) = vel - field.U(j,1);
                                 }
                                 break;
 
                             case 3:
                                 for(int i=0; i<field.shape[2]; i++){
                                     for(int j=0; j<field.shape[0]; j++){
-                                        field.U(j,0,i) += vel;
+                                        field.U(j,0,i) = vel - field.U(j,0,i);
                                     }
                                 }
                                 break;
@@ -355,7 +355,7 @@ class BoundaryConditions{
                         switch(dim){
                             case 2:
                                 for(int j=0; j<field.shape[0]; j++){
-                                    field.U(j,kmax) += vel;
+                                    field.U(j,kmax) = vel - field.U(j,kmax-1);
                                 }
                                 break;
 
@@ -363,7 +363,7 @@ class BoundaryConditions{
                                 for(int i=0; i<field.shape[1]; i++){
                                     for(int j=0; j<field.shape[0]; j++){
         
-                                        field.U(j,kmax,i) += vel;
+                                        field.U(j,kmax,i) = vel - field.U(j,kmax-1,i);
                                     }
                                 }
                                 break;
@@ -379,7 +379,7 @@ class BoundaryConditions{
                                 for(int i=0; i<field.shape[2]; i++){
                                     for(int j=0; j<field.shape[0]; j++){
 
-                                        field.U(j,i,0) += vel;
+                                        field.U(j,i,0) = vel - field.U(j,i,1);
                                     }   
                                 }
                             break;
@@ -396,7 +396,7 @@ class BoundaryConditions{
                                 for(int i=0; i<field.shape[2]; i++){
                                     for(int j=0; j<field.shape[0]; j++){
 
-                                        field.U(j,i,kmax) += vel;
+                                        field.U(j,i,kmax) = vel - field.U(j,i,kmax-1);
                                     }   
                                 }
                             break;
