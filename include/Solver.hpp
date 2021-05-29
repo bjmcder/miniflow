@@ -1,17 +1,22 @@
-#ifndef __SOLVER_HPP
-#define __SOLVER_HPP
+#ifndef SOLVER_HPP
+#define SOLVER_HPP
 
 #include <limits>
 
 #include "Solution.hpp"
 #include "Problem.hpp"
 
+// Forward declarations
 template<typename T>
 struct Solution;
 
 template<typename T>
 struct Problem;
 
+/**
+ * Solver settings class. This is a container for all the settings that define
+ * the behavior of the Navier-Stokes solver.
+*/
 template<typename T>
 struct SolverSettings{
     T upwind_factor;
@@ -20,12 +25,16 @@ struct SolverSettings{
     int max_iters;
 
     /**
-     * 
+     * Default constructor. Initialize the solver with preset values for
+     * upwinding, relaxation, convergence tolerance and maximum iterations. 
     */
-    SolverSettings(){}
+    SolverSettings(): upwind_factor(0.5),
+                      relax_factor(1.5),
+                      tolerance(1e-3),
+                      max_iters(100){}
 
     /**
-     * 
+     * Preferred constructor. Initialize the solver with user-defined settings.
     */
     SolverSettings(const T& gamma,
                    const T& omega,
@@ -39,6 +48,10 @@ struct SolverSettings{
     }
 };
 
+/**
+ * Solver statistics class. This is a container for tracking the state of the
+ * Navier-Stokes solver with regards to iteration count, residuals and norms.
+*/
 template<typename T>
 struct SolverStats{
 
@@ -48,15 +61,28 @@ struct SolverStats{
     T l2_norm;
     T linf_norm;
 
-    SolverStats(){
+    /**
+     * Default Constructor. Initialize all settings to zero.
+    */
+    SolverStats(): itercount(0),
+                   residual_sumsquares(0),
+                   residual_max(0),
+                   l2_norm(0),
+                   linf_norm(0){
         reset();
     }
 
+    /**
+     * Reset all solver statistics.
+    */
     void reset(){
         itercount = 0;
         reset_norm();
     }
 
+    /**
+     * Reset all solver norms.
+    */
     void reset_norm(){
         residual_sumsquares = 0;
         residual_max = 0;
@@ -65,6 +91,12 @@ struct SolverStats{
     }
 };
 
+/**
+ * Solver class. A collection of functions that operate on a problem
+ * definition to solve the Navier-Stokes equations for vector and 
+ * scalar fields. Based on Ch. 3 of "Numerical Simulation in Fluid Dynamics"
+ * by Griebel, et al.
+*/
 template<typename T>
 class Solver{
 
@@ -83,7 +115,8 @@ class Solver{
         Solver(){}
 
         /**
-         * 
+         * Preferred constructor. Uses problem definition and solver settings
+         * based on user input.
         */
         Solver(Problem<T>& problem, SolverSettings<T>& settings){
 
@@ -245,9 +278,9 @@ class Solver{
         }
 
         /**
-         * 
+         * Old diffusion operator. Save until new one is verified.
         */
-        T diffusion(int axis, int i, int j=0, int k=0){
+        /*T diffusion(int axis, int i, int j=0, int k=0){
 
             constexpr bool DEBUG = false;
             const std::string delsquared = "\u2207\u00b2";
@@ -319,6 +352,47 @@ class Solver{
             }
 
             return ans;
+       }*/
+
+        /**
+         * Apply the diffusion (Laplacian) operator to the solution velocity
+         * field.
+        */
+        inline vector3d_t& diffusion(int i, int j, int k){
+
+            // We need the velocity field and cell sizes to compute
+            // the Laplacian.
+            const auto& UVW = _solution.velocity;
+
+            const auto& h = _problem.geometry().cell_sizes();
+            const auto& dim = _problem.geometry().dimension();
+
+            // To simplify the looping, we make index arrays to hold the
+            // indices we need for central differencing.
+            std::array<int, 3> base_idx = {i,j,k};
+            auto fwd_idx = base_idx;
+            auto bwd_idx = base_idx;
+
+            // For each velocity component, accumulate the Laplacian terms
+            vector3d_t delsquared(0.0, 0.0, 0.0);
+            
+            for(int d=0; d<dim; d++){
+
+                // Set the forward and backward indices needed for the
+                // central differencing
+                fwd_idx[d] += 1;
+                bwd_idx[d] -= 1;
+
+                // Compute d^2/dh^2 for the component, where h = x,y,or z
+                delsquared[d] = (UVW(fwd_idx)[d] + \
+                                 2*UVW(base_idx)[d] + \
+                                 UVW(bwd_idx)[d]) / (h[d]*h[d]);
+
+                // Reset the indices for the next iteration
+                fwd_idx = base_idx;
+                bwd_idx = base_idx;
+            }
+            return delsquared;
        }
 
         /**
@@ -372,7 +446,54 @@ class Solver{
         }
 
         /**
-         * 
+         * Compute the intermediate velocity terms needed for subsequent
+         * pressure iterations. This is done by taking the current velocity
+         * and applying the advection-diffusion operator.
+        */
+        void compute_intermediate_velocity(){
+
+            const auto& UVW = _solution.velocity;
+            auto& FGH = _solution.intermediate_velocity;
+
+            // Precompute and cache constants needed in later steps 
+            const auto& Re = _problem.flow_parameters().Re();
+            const auto& inv_Re = 1/Re;
+            const auto& dt = _problem.timestepper().dt();
+            const auto& bforce = _problem.flow_parameters().body_forces();
+
+            // Precompute the max indices for each dimension of the problem
+            const auto& imax = _problem.geometry().ncells()[0]-1;
+            const auto& jmax = _problem.geometry().ncells()[1]-1;
+            const auto& kmax = _problem.geometry().ncells()[2]-1;
+
+            // Apply the advection-diffusion operator to each non-boundary
+            // element in the problem.
+
+            // Each layer in the block
+            for(int k=1; k<kmax; k++){
+                // Each row in a layer
+                for(int j=1; j<jmax; j++){
+                    // Each column in a row
+                    for(int i=1; i<imax; i++){
+
+                        auto diff = diffusion(i,j,k);
+                        auto advect = advection(i,j,k);
+                        auto op = dt*(inv_Re*(diff) - advect + bforce);
+
+                        FGH(i,j,k) = UVW(i,j,k) + op;
+                    }
+                }
+            }
+
+            // For the boundary cells, copy in the velocities of the adjacent
+            // interior cells. 
+            
+
+
+        }
+
+        /**
+         * Pre-compute the right-hand side of the pressure equation
         */
         void compute_rhs(){
 
@@ -413,7 +534,7 @@ class Solver{
         }
 
         /**
-         * 
+         * Perform a single SOR iteration on the pressure field.
         */
         void sor_iteration(){
 
@@ -523,7 +644,7 @@ class Solver{
         }
 
         /**
-         * 
+         * Compute the L2 and L-inf norms.
         */
         void compute_norms(){
 
@@ -540,7 +661,10 @@ class Solver{
         }
 
         /**
-         * 
+         * Solve for the pressure field using the successive over-relaxation
+         * (SOR) method. Iterate until the L2 norm reaches a tolerance
+         * threshold, or until the solver reaches a maximum number of
+         * iterations.
         */
         void solve_pressure(){
 
@@ -565,7 +689,7 @@ class Solver{
         }
 
         /**
-         * 
+         * Update the velocity field based on the computed pressure field.
         */
         void update_velocity(){
             
@@ -615,7 +739,11 @@ class Solver{
         }
 
         /**
-         * 
+         * Perform a single timestep. This consists of applying boundary
+         * conditions and motions, computing the intermediate velocity field
+         * based on an advection-diffusion operator, converging the pressure
+         * field using the SOR method, then finally updating the velocity
+         * field. 
         */
         void step(){
 
@@ -629,8 +757,8 @@ class Solver{
             _solution.V.print_field2d(0);*/
 
 
-            // Compute momenta
-            compute_momenta();
+            // Compute the intermediate velocities
+            compute_intermediate_velocity();
 
            /* std::cout << "*** F ***\n";
             _solution.F.print_field2d(0);
@@ -656,7 +784,11 @@ class Solver{
         }
 
         /**
-         * 
+         * Solve the time-dependent Navier-Stokes equations. We use an explicit
+         * Euler method for time stepping, and adaptively advance the time step
+         * based on sability criteria. At each step, we converge the pressure
+         * field using the successive over-relaxation (SOR) method then project
+         * this solution to determine the velocity field.
         */
         void solve(){
 
