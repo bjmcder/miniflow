@@ -1,5 +1,5 @@
-#ifndef __INPUT_HPP
-#define __INPUT_HPP
+#ifndef INPUT_HPP
+#define INPUT_HPP
 
 #include <string>
 #include <memory>
@@ -140,35 +140,6 @@ class Input{
     /**
      * 
     */
-    auto build_geometry1d(){
-        auto Lx = \
-            _toml_dat.get<toml::Array>("geometry.domain_size")[0].as<T>();
-        auto nx = \
-            _toml_dat.get<toml::Array>("geometry.num_cells")[0].as<int>();
-
-        return Geometry1D<T>(Lx, nx);
-    }
-
-    /**
-     * 
-    */
-    auto build_geometry2d(){
-        auto Lx = \
-            _toml_dat.get<toml::Array>("geometry.domain_size")[0].as<T>();
-        auto Ly = \
-            _toml_dat.get<toml::Array>("geometry.domain_size")[1].as<T>();
-
-        auto nx = \
-            _toml_dat.get<toml::Array>("geometry.num_cells")[0].as<int>();
-        auto ny = \
-            _toml_dat.get<toml::Array>("geometry.num_cells")[1].as<int>();
-
-        return Geometry2D<T>(Lx, Ly, nx, ny);
-    } 
-
-    /**
-     * 
-    */
     auto build_geometry3d(){
         auto Lx = \
             _toml_dat.get<toml::Array>("geometry.domain_size")[0].as<T>();
@@ -184,26 +155,18 @@ class Input{
         auto nz = \
             _toml_dat.get<toml::Array>("geometry.num_cells")[2].as<int>();
 
-        return Geometry3D<T>(Lx, Ly, Lz, nx, ny, nz);
+        return Geometry<T>(Lx, Ly, Lz, nx, ny, nz);
     }
 
     /**
      * 
     */
     Geometry<T> build_geometry(){
-        switch (_dim){
-        case 1:
-            return build_geometry1d();
-            break;
-        case 2:
-            return build_geometry2d();
-            break;
-        case 3:
-            return build_geometry3d();
-            break;
-        default:
-            throw std::invalid_argument("Could not build geometry");
+        if(_dim != 3){ 
+            throw std::invalid_argument("Geometry dimension must equal 3");
         }
+        
+        return build_geometry3d();
     }
 
     /**
@@ -221,6 +184,19 @@ class Input{
         return TimeStepper<T>(max_time, tau, dt0);
     }
 
+    /**
+     * Convert a boundary condition name string to its corresponding
+     * numeric index.
+    */
+    int bc_to_index(std::string bnd){
+        auto bnd_n = std::string(std::tolower(bnd.c_str()));
+
+        switch(bnd_n){
+            case "north"
+            default:
+                throw std::invalid_argument("Invalid boundary name\n");
+        }
+    }
 
     /**
      * 
@@ -253,12 +229,12 @@ class Input{
         // Convert string bcs to integers
         std::vector<int> bcs;
         for (const auto& b: string_bcs){
-            bcs.push_back(1);
+            bcs.push_back(bc_to_index(b));
         }
 
         // Similarly, with boundary motion values, we need to enforce the
         // The ordering.
-        std::vector<T> motion_vals;
+        std::vector<std::array<T,3>> motion_vals;
 
         T mval = 0.0;
 
