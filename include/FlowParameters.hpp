@@ -1,46 +1,48 @@
-#ifndef __FLOW_PARAMETERS_HPP
-#define __FLOW_PARAMETERS_HPP
+#ifndef FLOW_PARAMETERS_HPP
+#define FLOW_PARAMETERS_HPP
+
+#include "Types.hpp"
 
 template<typename T>
-struct FlowParameters{
+class FlowParameters{
     
-    T _reynolds;
-    std::vector<T> _initial_velocities;
-    std::vector<T> _body_forces;
+    private:
+        T _reynolds;
+        vector3d_t _initial_velocities;
+        vector3d_t _body_forces;
 
+    public:
+
+    // Default constructor (does nothing)
     FlowParameters(){}
 
     /**
-     * 
+     * Preferred constructor. Sets the Reynolds number, initial bulk
+     * velocities and bulk body forces.
     */
-    FlowParameters(int dim,
-                   T& reynolds,
+    FlowParameters(T& reynolds,
                    std::vector<T>& initial_velocities,
                    std::vector<T>& body_forces){
                        
         _reynolds = reynolds;
-        _initial_velocities= initial_velocities;
-        _body_forces.resize(dim);
+        _initial_velocities = initial_velocities;
+        _body_forces = body_forces;
     }
 
     /**
-     * 
+     * Return the Reynolds number defined for this problem.
     */
-    const T& Re(){
-        return _reynolds;
-    }
+    const T& Re(){return _reynolds;}
 
     /**
-     * 
+     * Return the initial bulk velocities defined for this problem.
     */
-    const std::vector<T>& initial_velocities(){
-        return _initial_velocities;
-    }
+    const vector3d_t& initial_velocities(){return _initial_velocities;}
 
-    const std::vector<T>& body_forces(){
-        return _body_forces;
-    }
-
+    /**
+     * Return the bulk body force vector for this problem.
+    */
+    const vector3d_t& body_forces(){return _body_forces;}
 };
 
 #endif

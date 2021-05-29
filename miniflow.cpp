@@ -19,7 +19,7 @@ int main(int argc, char** argv){
     std::cout << std::setprecision(12);
 
     // Load the input TOML file
-    auto indat = Input<real_t>(argv[1]);
+    auto indat = Input<scalar_t>(argv[1]);
 
     // Build the problem
     auto geom = indat.build_geometry();
@@ -28,9 +28,9 @@ int main(int argc, char** argv){
     auto flow_params = indat.build_flow_params();
     auto solver_settings = indat.build_solver_settings();
 
-    auto problem = Problem<real_t>(geom, tstepper, bcs, flow_params);
+    auto problem = Problem<scalar_t>(geom, tstepper, bcs, flow_params);
 
-    auto solver = Solver<real_t>(problem, solver_settings);
+    auto solver = Solver<scalar_t>(problem, solver_settings);
 
     solver.solve();
     

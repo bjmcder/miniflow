@@ -1,35 +1,33 @@
-#ifndef __SOLUTION_HPP
-#define __SOLUTION_HPP
+#ifndef SOLUTION_HPP
+#define SOLUTION_HPP
 
 #include <array>
 #include <cmath>
 #include <vector>
 
-#include "Field3D.hpp"
+#include "Types.hpp"
 #include "Problem.hpp"
 
-template<typename T>
-class Field3; 
-
+// Forward declarations
 template<typename T>
 class Problem;
 
+/**
+ * Solution class. This is a container for all the data generated during the
+ * solution of a Navier-Stokes problem.
+*/
 template<typename T>
 struct Solution{
 
-    std::vector<int> shape;
+    std::array<int,3> shape;
 
-    Field3<T> U;
-    Field3<T> V;
-    Field3<T> W;
+    vector_field_t velocity;
+    vector_field_t intermediate_velocity;
 
-    Field3<T> pressure;
+    scalar_field_t pressure;
+    scalar_field_t rhs;
 
-    Field3<T> F;
-    Field3<T> G;
-    Field3<T> H;
-    Field3<T> rhs;
-
+    // TODO: Other fields to be implemented
     //Field3<T> vorticity;
     //Field3<T> temperature;
 
@@ -60,95 +58,129 @@ struct Solution{
     }
 
     /**
-     * 
+     * Set the size of the solution fields.
     */
     void set_array_sizes(const std::vector<size_t>& shape){
 
-        U = Field3<T>(shape);
-        V = Field3<T>(shape);
-        W = Field3<T>(shape);
+        velocity = vector_field_t(shape);
+        intermediate_velocity = vector_field_t(shape);
 
-        F = Field3<T>(shape);
-        G = Field3<T>(shape);
-        H = Field3<T>(shape);
-
-        pressure = Field3<T>(shape);
-        rhs = Field3<T>(shape);
+        pressure = scalar_field_t(shape);
+        rhs = scalar_field_t(shape);
     }
 
     /**
-     * 
+     * Initialize all solution fields to their starting values.
     */
     void initialize_solution(Problem<T>& problem){
         
-        U.fill(problem.flow_parameters().initial_velocities()[0]);
-        V.fill(problem.flow_parameters().initial_velocities()[1]);
-        W.fill(problem.flow_parameters().initial_velocities()[2]);
-
-        F.zeros();
-        G.zeros();
-        H.zeros();
+        velocity.fill(problem.flow_parameters().initial_velocities());
+        intermediate_velocity.zeros();
 
         rhs.zeros();
         pressure.zeros();
     }
 
     /**
-     * 
+     * Get a field of single vector direction components from a vector field.
+    */
+    scalar_field_t& component_to_field(const vector3d_t& field, int dim){
+        auto result = scalar_field_t(field.shape());
+
+        // Since the fields have the same shapes and strides, we can just
+        // copy the components into the data array directly without nested
+        // looping.
+        for(int i=0; i<field.size(); i++){
+            result.data()[i] = field.data()[i][dim];
+        }
+        return result;
+    }
+
+    /**
+     * Get the field of velocity components in the x-direction (U).
+    */
+    scalar_field_t& U(){return component_to_field(velocity, 0);}
+
+    /**
+     * Get the field of velocity components in the y-direction (V).
+    */
+    scalar_field_t& V(){return component_to_field(velocity, 1);}
+
+    /**
+     * Get the field of velocity components in the z-direction (W).
+    */
+    scalar_field_t& W(){return component_to_field(velocity, 2);}
+
+    /**
+     * Get the field of intermediate velocity components in the 
+     * x-direction (F).
+    */
+    scalar_field_t& F(){return component_to_field(intermediate_velocity, 0);}
+
+    /**
+     * Get the field of intermediate velocity components in the 
+     * y-direction (G).
+    */
+    scalar_field_t& G(){return component_to_field(intermediate_velocity, 1);}
+
+    /**
+     * Get the field of intermediate velocity components in the 
+     * y-direction (H).
+    */
+    scalar_field_t& H(){return component_to_field(intermediate_velocity, 2);}
+
+    /**
+     * Get the field of velocity components in the specified direction.
+    */
+    scalar_field_t& velocity_component(int dim){
+        switch(dim){
+            case 0:
+                return U();
+            case 1:
+                return V();
+            case 2:
+                return W();
+            default:
+                throw std::invalid_argument("Invalid dimension.");
+        }
+    }
+
+    /**
+     * Get the field of intermediate velocity components in the specified
+     *  direction.
+    */
+    scalar_field_t& intermediate_velocity(int dim){
+        switch(dim){
+            case 0:
+                return F();
+            case 1:
+                return G();
+            case 2:
+                return H();
+            default:
+                throw std::invalid_argument("Invalid dimension.");
+        }
+    }
+
+    /**
+     * Get the absolut value of the maximum velocity component in each
+     * direction.
     */
     std::array<T,3> max_velocity_components(){
-        std::array<T,3> max_components;
 
-        max_components[0] = absmax(U.data());
-        max_components[1] = absmax(V.data());
-        max_components[2] = absmax(W.data());
+        std::array<T,3> max_components = {0,0,0};
 
-        return max_components;
-    }
+        // Get each velocity vector
+        for(const auto& vec: velocity.data()){
 
-    /**
-     * 
-    */
-    T absmax(std::vector<T> data) const{
-        auto max = 0.0;
-        for (const auto& elem: data){
-            if (fabs(elem) > max){
-                max = std::fabs(elem);
+            // Check each component's absolute value. Store it if it's larger
+            // than what we've accumulated so far.
+            for(int j=0; j<3; j++){
+                T val = fabs(vec[j]);
+                if(val > max_components[j]) max_components[j] = val;
             }
         }
-        return max;
-    }
-
-    /**
-     * 
-    */
-    Field3<T>& velocity_component(int dim){
-        switch(dim){
-            case 0:
-                return U;
-            case 1:
-                return V;
-            case 2:
-                return W;
-            default:
-                throw std::invalid_argument("Invalid dimension.");
-        }
-    }
-
-    /**
-     * 
-    */
-    Field3<T>& tentative_momentum(int dim){
-        switch(dim){
-            case 0:
-                return F;
-            case 1:
-                return G;
-            case 2:
-                return H;
-            default:
-                throw std::invalid_argument("Invalid dimension.");
-        }
+        return max_components;
     }
 };
 
