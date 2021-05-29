@@ -1,5 +1,5 @@
-#ifndef __PROBLEM_HPP
-#define __PROBLEM_HPP
+#ifndef PROBLEM_HPP
+#define PROBLEM_HPP
 
 #include "BoundaryConditions.hpp"
 #include "Geometry.hpp"
@@ -19,20 +19,29 @@ class TimeStepper;
 template<typename T>
 struct FlowParameters;
 
+/**
+ * Problem class. This is a container for all the data and parameters needed
+ * to define a Navier-Stokes flow problem.
+*/
 template<typename T>
 class Problem{
 
     private:
-    
         Geometry<T> _geom;
         TimeStepper<T> _tstepper;
         BoundaryConditions<T> _bcs;
         FlowParameters<T> _flowparams;
 
     public:
-
+        /**
+         * Default constructor (does nothing).
+        */
         Problem(){}
 
+        /**
+         * Preferred constructor. Defines a 3D Navier-Stokes problem from
+         * the geometry, timestepper, boundary conditions and flow parameters.
+        */
         Problem(const Geometry<T>& geom,
                 const TimeStepper<T>& tstepper,
                 const BoundaryConditions<T>& bcs,
@@ -44,33 +53,25 @@ class Problem{
             _flowparams = flowparams;
         }
 
-    /**
-     * 
-    */
-    Geometry<T>& geometry(){
-        return _geom;
-    }
+        /**
+         * Return the geometry object.
+        */
+        Geometry<T>& geometry(){return _geom;}
 
-    /**
-     * 
-    */
-    TimeStepper<T>& timestepper(){
-        return _tstepper;
-    }
+        /**
+         * Return the timestepper object.
+        */
+        TimeStepper<T>& timestepper(){return _tstepper;}
 
-    /**
-     * 
-    */
-    BoundaryConditions<T>& boundaries(){
-        return _bcs;
-    }
+        /**
+         * Return the boundary conditions object.
+        */
+        BoundaryConditions<T>& boundaries(){return _bcs;}
 
-    /**
-     * 
-    */
-    FlowParameters<T>& flow_parameters(){
-        return _flowparams;
-    }
+        /**
+         * Return the flow parameters object.
+        */
+        FlowParameters<T>& flow_parameters(){return _flowparams;}
 };
 
 #endif
