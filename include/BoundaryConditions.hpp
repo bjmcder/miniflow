@@ -39,86 +39,80 @@ class BoundaryConditions{
 
 
         /**
-         * 
+         * No-slip boundary condition.
         */
         void apply_noslip(Solution<T>& field, int boundary){
 
-            int dim = field.shape.size();
-            int kmax = 0;
+            auto& UVW = field.velocity;
+
+            const auto& imax = field.shape[0];
+            const auto& jmax = field.shape[1];
+            const auto& kmax = field.shape[2];
 
             switch(boundary){
 
                 case WEST:
-                    
-                    for(int i=0; i<field.shape[2]; i++){
-                        for(int j=0; j<field.shape[1]; j++){
+                    for(int k=0; k<kmax; k++){
+                        for(int j=0; j<jmax; j++){
 
-                            field.U(0,j,i) = -field.U(1,j,i);
-                            field.V(0,j,i) = 0.0;
-                            field.W(0,j,i) = 0.0;
+                            UVW(0,j,k).u() = -UVW(1,j,k).u();
+                            UVW(0,j,k).v() = 0.0;
+                            UVW(0,j,k).w() = 0.0; 
                         }
                     }  
                     break;
                     
                 case EAST:
+                    for(int k=0; k<kmax; k++){
+                        for(int j=0; j<jmax; j++){
 
-                    kmax = field.shape[0]-1;
-                    for(int i=0; i<field.shape[2]; i++){
-                        for(int j=0; j<field.shape[1]; j++){
-
-                            field.U(kmax,j,i) = -field.U(kmax-1,j,i);
-                            field.V(kmax,j,i) = 0.0;
-                            field.W(kmax,j,i) = 0.0;
+                            UVW(imax,j,k).u() = -UVW(imax-1,j,k).u();
+                            UVW(imax,j,k).v() = 0.0;
+                            UVW(imax,j,k).w() = 0.0;
                         }
                     }
                     break;
 
                 case SOUTH:
+                    for(int k=0; k<kmax; k++){
+                        for(int i=0; i<imax; i++){
 
-                    for(int i=0; i<field.shape[2]; i++){
-                        for(int j=0; j<field.shape[0]; j++){
-
-                            field.U(j,0,i) = 0.0;
-                            field.V(j,0,i) = -field.V(j,1,i);
-                            field.W(j,0,i) = 0.0;
+                            UVW(j,0,k).u() = 0.0;
+                            UVW(j,0,k).v() = -UVW(j,1,k);
+                            UVW(j,0,k).w() = 0.0;
                         }
                     }
                     break;
 
                 case NORTH:
+                    for(int k=0; k<kmax; k++){
+                        for(int i=0; i<imax; i++){
 
-                    kmax = field.shape[1]-1;
-                    for(int i=0; i<field.shape[1]; i++){
-                        for(int j=0; j<field.shape[0]; j++){
-
-                            field.U(j,kmax,i) = 0.0;
-                            field.V(j,kmax,i) = -field.V(j,kmax-1,i);
-                            field.W(j,kmax,i) = 0.0;
+                            UVW(i,jmax,k).u() = 0.0;
+                            UVW(i,jmax,k).v() = -UVW(i,jmax-1,k).v();
+                            UVW(i,jmax,k).w() = 0.0;
                         }
                     }
                     break;
 
                 case DOWN:
+                    for(int j=0; j<jmax; j++){
+                        for(int i=0; i<imax; i++){
 
-                    for(int i=0; i<field.shape[2]; i++){
-                        for(int j=0; j<field.shape[0]; j++){
-
-                            field.U(j,i,0) = 0.0;
-                            field.V(j,i,0) = 0.0;
-                            field.W(j,i,0) = -field.W(j,i,0);
+                            UVW(i,j,0).u() = 0.0;
+                            UVW(i,j,0).v() = 0.0;
+                            UVW(i,j,0).w() = -UVW(i,j,0).w();
                         }   
                     }
                     break;
 
                 case UP:
+                    for(int j=0; j<jmax; j++){
+                        for(int i=0; i<imax; i++){
 
-                    kmax = field.shape[2]-1;
-                    for(int i=0; i<field.shape[2]; i++){
-                        for(int j=0; j<field.shape[0]; j++){
-
-                            field.U(j,i,kmax) = 0.0;
-                            field.V(j,i,kmax) = 0.0;
-                            field.W(j,i,kmax) = -field.W(j,i,kmax-1);
+                            UVW(i,j,kmax).u() = 0.0;
+                            UVW(i,j,kmax).v() = 0.0;
+                            UVW(i,j,kmax).w() = -UVW(i,j,kmax-1).w();
                         }   
                     }
                     break;
@@ -126,7 +120,6 @@ class BoundaryConditions{
                 default:
                     throw std::invalid_argument("Invalid boundary direction.");
             }
-
         }
 
         /**
