@@ -38,17 +38,17 @@ class Vec3{
         T& z(){return _data[2];}
 
         /**
-         * Returns the x-component.
+         * Returns the x-component (Alternate naming convention).
         */
         T& u(){return _data[0];}
 
         /**
-         * Returns the y-component.
+         * Returns the y-component (Alternate naming convention).
         */
         T& v(){return _data[1];}
 
         /**
-         * Returns the x-component.
+         * Returns the x-component (Alternate naming convention).
         */
         T& w(){return _data[2];}
 
