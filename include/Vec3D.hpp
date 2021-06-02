@@ -275,4 +275,32 @@ std::ostream& operator<<(std::ostream& os, Vec3<T>& vec){
     return os;
 }
 
+/**
+ * Equality operator on scalars. Checks that all elements are equal to a 
+ * single value.
+*/
+template <typename T>
+bool operator==(const Vec3<T>& a, T val){
+
+    for(int i=0; i<3; i++){
+        if (a[i] == val) continue;
+        else return false;
+    }
+    return true;
+}
+
+/**
+ * Equality operator on vector. Checks that all elements are equal to a 
+ * single value.
+*/
+template <typename T>
+bool operator==(const Vec3<T>& a, const Vec3<T>& b){
+
+    for(int i=0; i<3; i++){
+        if (a[i] == b[i]) continue;
+        else return false;
+    }
+    return true;
+}
+
 #endif

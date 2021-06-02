@@ -2,6 +2,8 @@
 #define FIELD_3D_HPP
 
 #include <array>
+#include <iomanip>
+#include <string>
 #include <vector>
 
 template<typename T>
@@ -9,7 +11,7 @@ class Field3{
 
     private:
         std::vector<T>  _data;
-        std::array<T,3> _strides;
+        std::array<size_t,3> _strides;
         size_t          _size;
  
     public:
@@ -28,7 +30,7 @@ class Field3{
      * Preferred constructor. Create a field with dimensions (i,j,k)
      * and initialize all elements to zero.
     */
-    Field3(int i=1, int j=1, int k=1){
+    Field3(size_t i, size_t j, size_t k){
         _strides = {i,j,k};
         _size = i*j*k;
         _data.resize(_size);
@@ -36,12 +38,32 @@ class Field3{
     }
 
     /**
+     * Alternate constructor from a std::vector of size parameters.
+    */
+    Field3(const std::vector<size_t>& sizes){
+        _strides = {sizes[0], sizes[1], sizes[2]};
+        _size = sizes[0]*sizes[1]*sizes[2];
+        _data.resize(_size);
+        this->zeros();  
+    }
+
+    /**
+     * Alternate constructor from a std::array of size parameters.
+    */
+    Field3(const std::array<size_t,3>& sizes){
+        _strides = {sizes[0], sizes[1], sizes[2]};
+        _size = sizes[0]*sizes[1]*sizes[2];
+        _data.resize(_size);
+        this->zeros();  
+    }
+
+    /**
      * Reshape a field in 3 dimensions. This operation requires that the 
      * length of the master data array remains unchanged.
     */
-    inline void reshape(int i, int j, int k){
+    inline void reshape(size_t i, size_t j, size_t k){
         if(i*j*k != _data.size()){
-            auto err_str = "Cannot reshape field of shape (";
+            std::string err_str = "Cannot reshape field of shape (";
             err_str += std::to_string(_strides[0]);
             err_str += ", ";
             err_str += std::to_string(_strides[1]);
@@ -84,39 +106,39 @@ class Field3{
     /**
      * Convert a 3D (i,j,k) index to a 1D index into the master data array.
     */
-    inline int get_index(int i, int j, int k){
-        return i + j*_strides[1] + k*_strides[2]*_strides[1];
+    inline size_t get_index(size_t i, size_t j, size_t k){
+        return i + j*_strides[0] + k*_strides[1]*_strides[0];
     }
 
     /**
      * Convert a 3D (i,j,k) index in STL vector format to a 1D index into the 
      * master data array.
     */
-    inline int get_index(const std::vector<int>& vals){
-        return vals[0] + vals[1]*_strides[1] + vals[2]*_strides[2]*_strides[1];
+    inline size_t get_index(const std::vector<size_t>& vals){
+        return vals[0] + vals[1]*_strides[0] + vals[2]*_strides[1]*_strides[0];
     }
 
     /**
      * Convert a 3D (i,j,k) index in STL array format to a 1D index into the 
      * master data array.
     */
-    inline int get_index(const std::array<int,3>& vals){
-        return vals[0] + vals[1]*_strides[1] + vals[2]*_strides[2]*_strides[1];
+    inline size_t get_index(const std::array<size_t,3>& vals){
+        return vals[0] + vals[1]*_strides[0] + vals[2]*_strides[1]*_strides[0];
     }
 
     /**
      * Convert a 3D (i,j,k) index in C-array format to a 1D index into the 
      * master data array.
     */
-    inline int get_index(const int* vals){
-        return vals[0] + vals[1]*_strides[1] + vals[2]*_strides[2]*_strides[1];
+    inline size_t get_index(const size_t* vals){
+        return vals[0] + vals[1]*_strides[0] + vals[2]*_strides[1]*_strides[0];
     }
 
     /**
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * in STL vector format. 
     */
-    inline T& at(const std::vector<int>& vals){
+    inline T& at(const std::vector<size_t>& vals){
         auto idx = get_index(vals);
         return _data.at(idx);
     }
@@ -125,7 +147,7 @@ class Field3{
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * in STL array format. 
     */
-    inline T& at(const std::array<int,3>& vals){
+    inline T& at(const std::array<size_t,3>& vals){
         auto idx = get_index(vals);
         return _data.at(idx);
     }
@@ -134,16 +156,23 @@ class Field3{
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * as individual arguments. 
     */
-    inline T& at(int i, int j, int k){
+    inline T& at(size_t i, size_t j, size_t k){
         auto idx = get_index(i,j,k);
         return _data.at(idx);
+    }
+
+    /**
+     * Get the element at index i in the raw array with bounds checking.
+    */
+    inline T& at(size_t i){
+        return _data.at(i);
     }
 
     /**
      * Get the element at (i,j,k). Indices are specified as individual
      * arguments. 
     */
-    inline T& operator()(int i, int j, int k){
+    inline T& operator()(size_t i, size_t j, size_t k){
         auto idx = get_index(i,j,k);
         return _data[idx];
     }
@@ -152,7 +181,7 @@ class Field3{
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * in STL vector format. 
     */
-    inline T& operator()(const std::vector<int>& vals){
+    inline T& operator()(const std::vector<size_t>& vals){
         auto idx = get_index(vals);
         return _data[idx];
     }
@@ -161,7 +190,7 @@ class Field3{
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * in STL array format. 
     */
-    inline T& operator()(const std::array<int,3>& vals){
+    inline T& operator()(const std::array<size_t,3>& vals){
         auto idx = get_index(vals);
         return _data[idx];
     }
@@ -170,7 +199,7 @@ class Field3{
      * Get the element at (i,j,k) with bounds checking. Indices are specified
      * in C-array format. 
     */
-    inline T& operator()(const int* vals){
+    inline T& operator()(const size_t* vals){
         auto idx = get_index(vals);
         return _data[idx];
     }
@@ -179,7 +208,7 @@ class Field3{
      * Print a single row of the field to stdout. The row is specified at
      * (i, j, k).  
     */
-    void print_row(int i, int j, int k){
+    void print_row(size_t i=0, size_t j=0, size_t k=0){
 
         auto ncols = this->shape()[0];
 
@@ -188,7 +217,7 @@ class Field3{
         auto width = 12;
 
         std::cout << "[";
-        for (int i=0; i<ncols; i++){
+        for (size_t i=0; i<ncols; i++){
             std::cout << 
             std::setw(width) <<
             std::setprecision(prec) <<
@@ -203,11 +232,11 @@ class Field3{
      * Print a single panel of the field to stdout. The panel is specified at
      * (i, j, k).  
     */
-    void print_panel(int i, int j, int k){
+    void print_panel(size_t i=0, size_t j=0, size_t k=0){
 
         auto nrows = this->shape()[1];
 
-        for (int i=0; i<nrows; i++){
+        for (size_t i=0; i<nrows; i++){
             print_row(i, j, k);
         }
         std::cout << "\n";
@@ -218,11 +247,11 @@ class Field3{
      * (i, j, k) and is printed with the maximum y-index oriented at the TOP of
      * the screen.  
     */
-    void print_field2d(int i, int j, int k){
+    void print_field2d(size_t i=0, size_t j=0, size_t k=0){
 
         auto nrows = this->shape()[1];
 
-        for (int i=nrows-1; i>=0; i--){
+        for (size_t i=nrows-1; i>=0; i--){
             print_row(i, j, k);
         }
         std::cout << "\n";
@@ -233,11 +262,11 @@ class Field3{
      * (i, j, k) and is printed with the maximum y-index oriented at the
      * BOTTOM of the screen.  
     */
-    void print_block(int i, int j, int k){
+    void print_block(size_t i=0, size_t j=0, size_t k=0){
 
         auto nlayers = this->shape()[2];
 
-        for (int i=0; i<nlayers; i++){
+        for (size_t i=0; i<nlayers; i++){
             print_panel(i, j, k);
         }
         std::cout << "\n";
@@ -248,12 +277,11 @@ class Field3{
      * (i, j, k) and is printed with the maximum y-index oriented at the
      * TOP of the screen.  
     */
-    template<typename ...Args>
-    void print_field3d(int i, int j, int k){
+    void print_field3d(size_t i=0, size_t j=0, size_t k=0){
 
         auto nlayers = this->shape()[2];
 
-        for (int i=nlayers-1; i>=0; i--){
+        for (size_t i=nlayers-1; i>=0; i--){
             print_field2d(i, j, k);
         }
         std::cout << "\n";
@@ -262,14 +290,14 @@ class Field3{
     /**
      * Return the shape of the field in 3-dimension.
     */
-    std::array<int, 3> shape(){
+    std::array<size_t, 3> shape(){
         return _strides;
     }
 
     /**
      * Return the total number of elements in the field.
     */
-    int size(){
+    size_t size(){
         return _data.size();
     }
 
@@ -287,8 +315,8 @@ class Field3{
 template<typename T>
 void shape_mismatch(const Field3<T>& a, const Field3<T>& b){
 
-    auto asize_str = "(";
-    auto bsize_str = "(";
+    std::string asize_str = "(";
+    std::string bsize_str = "(";
 
     for(int i=0; i<3; i++){
         asize_str += std::to_string(a.shape()[i]);
@@ -305,7 +333,7 @@ void shape_mismatch(const Field3<T>& a, const Field3<T>& b){
                     asize_str +
                     "does not match field B shape " +
                     bsize_str +
-                    "\n".
+                    "\n";
 
     throw std::length_error(err_str);
 }

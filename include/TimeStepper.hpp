@@ -82,7 +82,7 @@ class TimeStepper{
             // Precompute the sum of the reciprocals of the squares 
             auto recip_sum = 0.0;
             for (auto& sq: h2){
-                recipsum += (1/sq);
+                recip_sum += (1/sq);
             }
 
             // Take the reciprocal of the sum of the reciprocals

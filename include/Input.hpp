@@ -1,7 +1,9 @@
 #ifndef INPUT_HPP
 #define INPUT_HPP
 
+#include <algorithm>
 #include <string>
+#include <locale>
 #include <memory>
 
 #include "ext/toml.h"
@@ -189,19 +191,22 @@ class Input{
      * numeric index.
     */
     int bc_to_index(std::string bnd){
-        auto bnd_n = std::string(std::tolower(bnd.c_str()));
 
-        switch(bnd_n){
-            case "north"
-            default:
-                throw std::invalid_argument("Invalid boundary name\n");
-        }
+        if(!bnd.compare("freeslip")) return 0;
+        if(!bnd.compare("noslip")) return 1;
+        if(!bnd.compare("inflow")) return 2;
+        if(!bnd.compare("outflow")) return 3;
+        if(!bnd.compare("periodic")) return 4;
+
+        throw std::invalid_argument("Unrecognized boundary condition.\n");
     }
 
     /**
      * 
     */
     BoundaryConditions<T> build_boundary_conditions(){
+
+        std::cout << "boundaries\n";
 
         auto conditions = _toml_dat.get<toml::Table>("boundary.conditions");
         auto motion = _toml_dat.get<toml::Table>("boundary.motion");
@@ -217,14 +222,12 @@ class Input{
         string_bcs.push_back(conditions["west"].as<std::string>());
         string_bcs.push_back(conditions["east"].as<std::string>());
 
-        if (_dim > 1){
-            string_bcs.push_back(conditions["south"].as<std::string>());
-            string_bcs.push_back(conditions["north"].as<std::string>());
-        }
-        if (_dim > 2){ 
-            string_bcs.push_back(conditions["down"].as<std::string>());
-            string_bcs.push_back(conditions["up"].as<std::string>());
-        }
+        string_bcs.push_back(conditions["south"].as<std::string>());
+        string_bcs.push_back(conditions["north"].as<std::string>());
+
+        string_bcs.push_back(conditions["down"].as<std::string>());
+        string_bcs.push_back(conditions["up"].as<std::string>());
+
         
         // Convert string bcs to integers
         std::vector<int> bcs;
@@ -234,35 +237,67 @@ class Input{
 
         // Similarly, with boundary motion values, we need to enforce the
         // The ordering.
-        std::vector<std::array<T,3>> motion_vals;
-
-        T mval = 0.0;
+        std::array<T,3> mvec = {0.0, 0.0, 0.0};
+        std::vector<std::array<T,3>> motion_vecs;
 
         // If we have the value defined in the input, add it to the motion_vals
         // vector, otherwise, add a zero.
-        mval = !motion["west"].empty() ? motion["west"].as<T>() : 0.0;
-        motion_vals.push_back(mval);
-
-        mval = !motion["east"].empty() ? motion["east"].as<T>() : 0.0;
-        motion_vals.push_back(mval);
-
-        if(_dim > 1){
-            mval = !motion["south"].empty() ? motion["south"].as<T>() : 0.0;
-            motion_vals.push_back(mval);
-
-            mval = !motion["north"].empty() ? motion["north"].as<T>() : 0.0;
-            motion_vals.push_back(mval);   
+        std::string key = "";
+        if(!motion["west"].empty()){
+            key = "boundary.motion.west";
+            for(int i=0; i<_dim; i++){
+                mvec[i] =  _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
         }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec);
 
-        if(_dim > 2){
-            mval = !motion["down"].empty() ? motion["down"].as<T>() : 0.0;
-            motion_vals.push_back(mval);
-
-            mval = !motion["up"].empty() ? motion["up"].as<T>() : 0.0;
-            motion_vals.push_back(mval);      
+        if(!motion["east"].empty()){
+            key = "boundary.motion.east";
+            for(int i=0; i<_dim; i++){
+                mvec[i] = _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
         }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec);
 
-        return BoundaryConditions<T>(bcs, motion_vals);
+        if(!motion["south"].empty()){
+            key = "boundary.motion.south";
+            for(int i=0; i<_dim; i++){
+                mvec[i] = _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
+        }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec);
+
+        if(!motion["north"].empty()){
+            key = "boundary.motion.north";
+            for(int i=0; i<_dim; i++){
+                mvec[i] = _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
+        }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec); 
+
+        if(!motion["down"].empty()){
+            key = "boundary.motion.down";
+            for(int i=0; i<_dim; i++){
+                mvec[i] = _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
+        }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec);
+
+        if(!motion["up"].empty()){
+            key = "boundary.motion.up";
+            for(int i=0; i<_dim; i++){
+                mvec[i] = _toml_dat.get<toml::Array>(key)[i].as<T>();
+            }
+        }
+        else mvec = {0.0, 0.0, 0.0};
+        motion_vecs.push_back(mvec);     
+
+        return BoundaryConditions<T>(bcs, motion_vecs);
     }
 
     /**
@@ -285,8 +320,7 @@ class Input{
         for (const auto& v: body_forces){
             bforces.push_back(v.as<T>());
         }
-        return FlowParameters<T>(_dim,
-                                 reynolds,
+        return FlowParameters<T>(reynolds,
                                  ivels,
                                  bforces);
     }

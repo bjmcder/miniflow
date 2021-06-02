@@ -2,6 +2,7 @@
 #define GEOMETRY_HPP
 
 #include <array>
+#include <numeric>
 #include <vector>
 
 #include "Types.hpp"
@@ -11,7 +12,7 @@ class Geometry{
 
     private:
 
-        constexpr int _dimension = 3;
+        int _dimension = 3;
 
         std::array<T,3> _length;
         std::array<int,3> _ncells;

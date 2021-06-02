@@ -13,8 +13,8 @@ template<typename T>
 class BoundaryConditions{
 
     private:
-        std::vector<int> _conditions;
-        std::vector<vector3d_t> _motion;
+        std::array<int, 6> _conditions;
+        std::array<vector3d_t, 6> _motion;
 
     public:
 
@@ -31,10 +31,13 @@ class BoundaryConditions{
          * and boundary motion vectors.
         */
         BoundaryConditions(std::vector<int>& conditions, 
-                           std::vector<T>& motion){
+                           std::vector<std::array<T,3>>& motion){
 
-            _conditions = conditions;
-            _motion = motion;
+            std::copy(conditions.begin(),
+                      conditions.end(),
+                     _conditions.begin());
+            
+            std::copy(motion.begin(), motion.end(), _motion.begin());
         }
 
 
@@ -45,15 +48,15 @@ class BoundaryConditions{
 
             auto& UVW = field.velocity;
 
-            const auto& imax = field.shape[0];
-            const auto& jmax = field.shape[1];
-            const auto& kmax = field.shape[2];
+            const auto& imax = field.shape[0]-1;
+            const auto& jmax = field.shape[1]-1;
+            const auto& kmax = field.shape[2]-1;
 
             switch(boundary){
 
                 case WEST:
-                    for(int k=0; k<kmax; k++){
-                        for(int j=0; j<jmax; j++){
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
 
                             UVW(0,j,k).u() = -UVW(1,j,k).u();
                             UVW(0,j,k).v() = 0.0;
@@ -63,8 +66,8 @@ class BoundaryConditions{
                     break;
                     
                 case EAST:
-                    for(int k=0; k<kmax; k++){
-                        for(int j=0; j<jmax; j++){
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
 
                             UVW(imax,j,k).u() = -UVW(imax-1,j,k).u();
                             UVW(imax,j,k).v() = 0.0;
@@ -74,19 +77,19 @@ class BoundaryConditions{
                     break;
 
                 case SOUTH:
-                    for(int k=0; k<kmax; k++){
-                        for(int i=0; i<imax; i++){
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
 
-                            UVW(j,0,k).u() = 0.0;
-                            UVW(j,0,k).v() = -UVW(j,1,k);
-                            UVW(j,0,k).w() = 0.0;
+                            UVW(i,0,k).u() = 0.0;
+                            UVW(i,0,k).v() = -UVW(i,1,k).v();
+                            UVW(i,0,k).w() = 0.0;
                         }
                     }
                     break;
 
                 case NORTH:
-                    for(int k=0; k<kmax; k++){
-                        for(int i=0; i<imax; i++){
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
 
                             UVW(i,jmax,k).u() = 0.0;
                             UVW(i,jmax,k).v() = -UVW(i,jmax-1,k).v();
@@ -96,8 +99,8 @@ class BoundaryConditions{
                     break;
 
                 case DOWN:
-                    for(int j=0; j<jmax; j++){
-                        for(int i=0; i<imax; i++){
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
 
                             UVW(i,j,0).u() = 0.0;
                             UVW(i,j,0).v() = 0.0;
@@ -107,8 +110,8 @@ class BoundaryConditions{
                     break;
 
                 case UP:
-                    for(int j=0; j<jmax; j++){
-                        for(int i=0; i<imax; i++){
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
 
                             UVW(i,j,kmax).u() = 0.0;
                             UVW(i,j,kmax).v() = 0.0;
@@ -181,85 +184,100 @@ class BoundaryConditions{
         }
 
         /**
-         * 
+         * Applies a tangential velocity to each boundary, if specified in the
+         * user's input.
         */
         void apply_motions(Solution<T>& field){
 
-            for (int i=0; i<_motion.size(); i++){
+            auto& UVW = field.velocity;
 
-                int kmax = 0;
-                
-                if (_motion[i] == 0.0) continue;
+            const auto& imax = field.shape[0]-1;
+            const auto& jmax = field.shape[1]-1;
+            const auto& kmax = field.shape[2]-1;
 
-                T vel = 2.0*_motion[i];
+            for(int b=0; b<_motion.size(); b++){
 
-                switch(i){
+                // If the boundary motion is zero, don't bother going any
+                // further.
+                if (_motion[b] == 0.0) continue;
 
+                // Since the input defines the boundary velocity as a
+                // free-stream average, we invert the average here to get
+                // the boundary region velocity.
+                auto vel = 2.0*_motion[b];
+
+                switch(b){
+
+                    // West & East boundaries: Only the YZ components of the boundary
+                    // motion are considered.
                     case WEST:
+                        for(int k=0; k<=kmax; k++){
+                            for(int j=0; j<=jmax; j++){
 
-                        for(int i=0; i<field.shape[2]; i++){
-                            for(int j=0; j<field.shape[1]; j++){
-                                field.W(0,j,i) = vel - field.W(0,j,i);
+                                UVW(0,j,k).v() = vel[1] - UVW(1,j,k).v();
+                                UVW(0,j,k).w() = vel[2] - UVW(1,j,k).w(); 
                             }
-                        }
+                        }  
                         break;
-                        
+
                     case EAST:
+                        for(int k=0; k<=kmax; k++){
+                            for(int j=0; j<=jmax; j++){
 
-                        kmax = field.shape[0]-1;
-                        for(int i=0; i<field.shape[2]; i++){
-                            for(int j=0; j<field.shape[1]; j++){
-                                field.V(kmax,j,i) = vel - field.V(kmax-1,j,i);
+                                UVW(imax,j,k).v() = vel[1] - UVW(imax-1,j,k).v();
+                                UVW(imax,j,k).w() = vel[2] - UVW(imax-1,j,k).w();
                             }
                         }
                         break;
 
+                    // South & North boundaries: only the XZ components of the
+                    // boundary motion are considered.
                     case SOUTH:
+                        for(int k=0; k<=kmax; k++){
+                            for(int i=0; i<=imax; i++){
 
-                        for(int i=0; i<field.shape[2]; i++){
-                            for(int j=0; j<field.shape[0]; j++){
-                                field.U(j,0,i) = vel - field.U(j,0,i);
+                                UVW(i,0,k).u() = vel[0] - UVW(i,1,k).u();
+                                UVW(i,0,k).w() = vel[2] - UVW(i,1,k).w();
                             }
                         }
                         break;
 
                     case NORTH:
-
-                        kmax = field.shape[1]-1;
-                        for(int i=0; i<field.shape[1]; i++){
-                            for(int j=0; j<field.shape[0]; j++){
-
-                                field.U(j,kmax,i) = vel - field.U(j,kmax-1,i);
+                        for(int k=0; k<=kmax; k++){
+                            for(int i=0; i<=imax; i++){
+                                
+                                UVW(i,jmax,k).u() = vel[0] - UVW(i,jmax-1,k).u();
+                                UVW(i,jmax,k).w() = vel[2] - UVW(i,jmax-1,k).w();
                             }
                         }
                         break;
 
+                    // Down & Up boundaries: only the XY components of the
+                    // boundary motion are considered.
                     case DOWN:
+                        for(int j=0; j<=jmax; j++){
+                            for(int i=0; i<=imax; i++){
 
-                        for(int i=0; i<field.shape[2]; i++){
-                            for(int j=0; j<field.shape[0]; j++){
-
-                                field.U(j,i,0) = vel - field.U(j,i,1);
+                                UVW(i,j,0).u() = vel[0] - UVW(i,j,1).u();
+                                UVW(i,j,0).v() = vel[1] - UVW(i,j,1).v();
                             }   
                         }
                         break;
 
                     case UP:
+                        for(int j=0; j<=jmax; j++){
+                            for(int i=0; i<=imax; i++){
 
-                        kmax = field.shape[2]-1;
-                        for(int i=0; i<field.shape[2]; i++){
-                            for(int j=0; j<field.shape[0]; j++){
-
-                                field.U(j,i,kmax) = vel - field.U(j,i,kmax-1);
+                                UVW(i,j,kmax).u() = vel[0] - UVW(i,j,kmax-1).u();
+                                UVW(i,j,kmax).v() = vel[1] - UVW(i,j,kmax-1).v();
                             }   
                         }
-
                         break;
+
                     default:
                         throw std::invalid_argument("Invalid boundary direction.");
                 }
-            } 
-
+            }
         }
 };
 

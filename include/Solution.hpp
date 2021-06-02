@@ -84,7 +84,7 @@ struct Solution{
     /**
      * Get a field of single vector direction components from a vector field.
     */
-    scalar_field_t& component_to_field(const vector3d_t& field, int dim){
+    scalar_field_t component_to_field(vector_field_t& field, int dim){
         auto result = scalar_field_t(field.shape());
 
         // Since the fields have the same shapes and strides, we can just
@@ -99,40 +99,40 @@ struct Solution{
     /**
      * Get the field of velocity components in the x-direction (U).
     */
-    scalar_field_t& U(){return component_to_field(velocity, 0);}
+    scalar_field_t U(){return component_to_field(velocity, 0);}
 
     /**
      * Get the field of velocity components in the y-direction (V).
     */
-    scalar_field_t& V(){return component_to_field(velocity, 1);}
+    scalar_field_t V(){return component_to_field(velocity, 1);}
 
     /**
      * Get the field of velocity components in the z-direction (W).
     */
-    scalar_field_t& W(){return component_to_field(velocity, 2);}
+    scalar_field_t W(){return component_to_field(velocity, 2);}
 
     /**
      * Get the field of intermediate velocity components in the 
      * x-direction (F).
     */
-    scalar_field_t& F(){return component_to_field(intermediate_velocity, 0);}
+    scalar_field_t F(){return component_to_field(intermediate_velocity, 0);}
 
     /**
      * Get the field of intermediate velocity components in the 
      * y-direction (G).
     */
-    scalar_field_t& G(){return component_to_field(intermediate_velocity, 1);}
+    scalar_field_t G(){return component_to_field(intermediate_velocity, 1);}
 
     /**
      * Get the field of intermediate velocity components in the 
      * y-direction (H).
     */
-    scalar_field_t& H(){return component_to_field(intermediate_velocity, 2);}
+    scalar_field_t H(){return component_to_field(intermediate_velocity, 2);}
 
     /**
      * Get the field of velocity components in the specified direction.
     */
-    scalar_field_t& velocity_component(int dim){
+    scalar_field_t velocity_component(int dim){
         switch(dim){
             case 0:
                 return U();
@@ -149,7 +149,7 @@ struct Solution{
      * Get the field of intermediate velocity components in the specified
      *  direction.
     */
-    scalar_field_t& intermediate_velocity(int dim){
+    scalar_field_t intermediate_velocity_component(int dim){
         switch(dim){
             case 0:
                 return F();
@@ -163,7 +163,7 @@ struct Solution{
     }
 
     /**
-     * Get the absolut value of the maximum velocity component in each
+     * Get the absolute value of the maximum velocity component in each
      * direction.
     */
     std::array<T,3> max_velocity_components(){
