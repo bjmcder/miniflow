@@ -14,6 +14,7 @@ class TimeStepper{
     private:
         T _current_time;
         T _dt;
+        T _dt0;
         T _max_time;
         T _step_factor;
 
@@ -33,6 +34,7 @@ class TimeStepper{
             _max_time = t_max;
             _step_factor = tau;
             _dt = dt_0;
+            _dt0 = dt_0;
             _current_time = 0;
         }
 
@@ -130,8 +132,8 @@ class TimeStepper{
                                                    comparands.end()));
 
             // If the next timestep would get set to zero or a negative value, 
-            // then don't update it. Keep the current one instead.
-            if(dt_new <= 0.0) dt_new = _dt;
+            // then don't update it. Keep the user-defined one instead.
+            if((dt_new <= 0.0) || (dt_new < (_dt0/1000))) dt_new = _dt0;
 
             // Store the updated timestep size and advance the current time.
             _dt = dt_new;
