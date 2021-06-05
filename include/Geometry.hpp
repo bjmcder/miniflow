@@ -51,6 +51,35 @@ class Geometry{
         }
 
         /**
+         * Return the physical extents of the problem in each Cartesian
+         * direction.
+        */
+        inline std::array<T,3>& extents() const{
+            return _length;
+        }
+
+        /**
+         * Return the problem extent in the x-dimension.
+        */
+        inline T Lx(){
+            return _length[0];
+        }
+
+        /**
+         * Return the problem extent in the y-dimension.
+        */
+        inline T Ly(){
+            return _length[1];
+        }
+
+        /**
+         * Return the problem extent in the z-dimension.
+        */
+        inline T Lz(){
+            return _length[2];
+        }
+
+        /**
          * Return the cell size in the x-dimension.
         */
         inline T dx(){
