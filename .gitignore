@@ -4,6 +4,7 @@ tstep*
 *.vtk
 *.vti
 *.vtu
+*.pvd
 
 # Prerequisites
 *.d

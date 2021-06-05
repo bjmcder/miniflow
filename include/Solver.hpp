@@ -5,6 +5,7 @@
 
 #include "Solution.hpp"
 #include "Problem.hpp"
+#include "VTKOutput.hpp"
 
 // Forward declarations
 template<typename T>
@@ -212,7 +213,8 @@ class Solver{
                     advec(d1) -= upwind_difference(d1, d2, i, j, k);
                 }
             }
-
+            //std::cout << i << j << k << " ";
+            //std::cout << "(" << advec << ")\n";
             return advec;
         }
 
@@ -288,7 +290,7 @@ class Solver{
 
                         auto diff = diffusion(i,j,k);
                         auto advec = advection(i,j,k);
-                        auto advec_diff = dt*(inv_Re*(diff) - advec + bforce);
+                        auto advec_diff = dt*(inv_Re*(diff) + advec + bforce);
 
                         FGH(i,j,k) = UVW(i,j,k) + advec_diff;
                     }
@@ -603,9 +605,15 @@ class Solver{
                 _problem.timestepper().advance(cell_sizes, Re, max_vels);
 
                 // Save Timestep Solution
-                //if(step_count % write_every == 0){
-                //  _solution.to_vtk(fname);
-                //}
+                int write_every = 10;
+                if(step_count % write_every == 0){
+                    std::string oname = "tstep_" + std::to_string(step_count) + ".vti";
+                    auto output = VTKFile<T>(oname);
+
+                    output.set_geometry(_problem);
+                    output.store_velocity(_solution);
+                    output.save_file();
+                }
 
             } while (_problem.timestepper().current_time() <= tmax);
             
