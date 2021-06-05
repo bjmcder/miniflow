@@ -1,36 +1,35 @@
 # The driven cavity benchmark
-
 [geometry]
-dimension=2
-domain_size=[0.25, 0.25]
-num_cells=[8,8]
+dimension=3
+domain_size=[1.0, 1.0, 1.0]
+num_cells=[64, 64, 64]
 material_map=""
 
 [solver]
-upwind_factor=0.7
+upwind_factor=0.9
 relax_factor=1.0
-tolerance=1e-3
-max_iters=5
+tolerance=1e-5
+max_iters=200
 
 [time]
-max_time=0.005
+max_time=1.0
 step_factor=0.5
-dt_start=0.001
+dt_start=0.01
 
 [flow]
 reynolds=1000.0
-initial_velocity=[0.0, 0.0]
-body_force=[0.0, 0.0]
+initial_velocity=[0.0, 0.0, 0.0]
+body_force=[0.0, 0.0, 0.0]
 
 [boundary]
 # The naming/indexing convention used for boundaries is as follows:
 # 
-#      x_neg/west/left   = 0   (all dimensions)
-#      x_pos/east/right  = 1   (all dimensions)
-#      y_neg/south/front = 2   (2D/3D)
-#      y_pos/north/back  = 3   (2D/3D)
-#      z_neg/bottom/down = 4   (3D)
-#      z_pos/top/up      = 5   (3D)
+#      west  = 0  
+#      east  = 1   
+#      south = 2   
+#      north = 3   
+#      down  = 4   
+#      up    = 5
 #
 # Available boundary conditions are as follows:
 #      free-slip      = 0
@@ -38,6 +37,15 @@ body_force=[0.0, 0.0]
 #      inflow/outflow = 2
 #      periodic       = 3
 #      
-conditions = {north="noslip", south="noslip", east="noslip", west="noslip"}
-motion = {north=1.0}
+conditions = {north="noslip", south="noslip", east="noslip", west="noslip", down="noslip", up="noslip"}
+#
+# Boundary motions are specified as U,V,W vectors on each boundary. Boundaries
+# with no motion vector specified will default to 0.0. 
+# 
+# Only vector components tangential to the corresponding boundary will affect
+# boundary motion. For example, the west boundary will only be affected by motions
+# in the Y-Z plane, since X components act normal to this boundary. Specifying a
+# nonzero vector component in the normal direction will result in an error.
+#
+motion = {north=[1.0, 0.0, 0.0]}
 
