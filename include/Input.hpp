@@ -13,6 +13,7 @@
 #include "Problem.hpp"
 #include "TimeStepper.hpp"
 #include "Solver.hpp"
+#include "OutputSettings.hpp"
 
 template<typename T>
 class Input{
@@ -335,6 +336,17 @@ class Input{
         auto max_it = _toml_dat.get<int>("solver.max_iters");
 
         return SolverSettings<T>(gamma, omega, tol, max_it);
+    }
+
+    /**
+     * 
+    */
+    void build_output_settings(){
+        auto write_every = _toml_dat.get<int>("output.write_every");
+        auto base_name = _toml_dat.get<std::string>("output.base_name");
+        auto format = _toml_dat.get<std::string>("output.format");
+
+        return OutputSettings(write_every, base_name, format);
     }
 
     /**

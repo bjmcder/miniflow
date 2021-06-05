@@ -5,6 +5,7 @@
 
 #include "Solution.hpp"
 #include "Problem.hpp"
+#include "OutputSettings.hpp"
 #include "VTKOutput.hpp"
 
 // Forward declarations
@@ -96,7 +97,7 @@ struct SolverStats{
  * Solver class. A collection of functions that operate on a problem
  * definition to solve the Navier-Stokes equations for vector and 
  * scalar fields. Based on Ch. 3 of "Numerical Simulation in Fluid Dynamics"
- * by Griebel, et al.
+ * by Griebel, et al.OUTPUT_HPP
 ******************************************************************************/
 template<typename T>
 class Solver{
@@ -107,6 +108,7 @@ class Solver{
         SolverStats<T> _stats;
         Solution<T> _solution;
         SolverSettings<T> _settings;
+        OutputSettings _output_settings;
 
     public:
 
@@ -119,11 +121,14 @@ class Solver{
          * Preferred constructor. Uses problem definition and solver settings
          * based on user input.
         **********************************************************************/
-        Solver(Problem<T>& problem, SolverSettings<T>& settings){
+        Solver(Problem<T>& problem, 
+               SolverSettings<T>& settings,
+               OutputSettings& outsettings){
 
             _problem = problem;
             _settings = settings;
             _solution = Solution<T>(_problem);
+            _output_settings = outsettings;
         }
 
         /**********************************************************************
@@ -605,9 +610,11 @@ class Solver{
                 _problem.timestepper().advance(cell_sizes, Re, max_vels);
 
                 // Save Timestep Solution
-                int write_every = 10;
+                int write_every = _output_settings.write_every;
                 if(step_count % write_every == 0){
-                    std::string oname = "tstep_" + std::to_string(step_count) + ".vti";
+                    auto bname = _output_settings.base_name;
+                    std::string oname = \
+                        bname + std::to_string(step_count) + ".vti";
                     auto output = VTKFile<T>(oname);
 
                     output.set_geometry(_problem);

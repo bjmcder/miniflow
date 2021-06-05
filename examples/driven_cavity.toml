@@ -49,3 +49,8 @@ conditions = {north="noslip", south="noslip", east="noslip", west="noslip", down
 #
 motion = {north=[1.0, 0.0, 0.0]}
 
+[output]
+write_every=10
+base_name="tstep"
+format="binary"
+
