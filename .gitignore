@@ -1,3 +1,10 @@
+# Output files
+miniflow
+tstep*
+*.vtk
+*.vti
+*.vtu
+
 # Prerequisites
 *.d
 
