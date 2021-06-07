@@ -612,10 +612,13 @@ class Solver{
                 // Save Timestep Solution
                 int write_every = _output_settings.write_every;
                 if(step_count % write_every == 0){
+
                     auto bname = _output_settings.base_name;
+
                     std::string oname = \
                         bname + std::to_string(step_count) + ".vti";
-                    auto output = VTKFile<T>(oname);
+
+                    auto output = VTKFile<T>(_output_settings, oname);
 
                     output.set_geometry(_problem);
                     output.store_velocity(_solution);

@@ -341,7 +341,7 @@ class Input{
     /**
      * 
     */
-    void build_output_settings(){
+    OutputSettings build_output_settings(){
         auto write_every = _toml_dat.get<int>("output.write_every");
         auto base_name = _toml_dat.get<std::string>("output.base_name");
         auto format = _toml_dat.get<std::string>("output.format");

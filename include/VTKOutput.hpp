@@ -11,6 +11,7 @@
 #include "Types.hpp"
 #include "Problem.hpp"
 #include "Solution.hpp"
+#include "OutputSettings.hpp"
 
 template<typename T>
 class VTKFile{
@@ -21,15 +22,18 @@ class VTKFile{
 
         std::string _write_path;
         std::string _vtk_type;
+        OutputSettings _settings;
 
     public:
 
         /**
-         * Default constructor. Construct a blank VTR file structure.
+         * Default constructor. Construct a blank VTI file structure.
         */
-        VTKFile(std::string fpath="miniflow.vti",
+        VTKFile(OutputSettings settings,
+                std::string fpath="miniflow.vti",
                 std::string vtk_type="ImageData"){
 
+            _settings = settings;
             _write_path = fpath;
             _vtk_type = vtk_type;
 
@@ -115,45 +119,53 @@ class VTKFile{
             data_array.append_attribute("Name") = "Velocity";
             data_array.append_attribute("NumberOfComponents") = 3;
             
-            data_array.append_attribute("format") = "binary";
+            auto format = _settings.format;
+            data_array.append_attribute("format") = format.c_str();
 
-            // We need to prepend the data sizes in bytes to the main dataset
-            size_t data_size = sizeof(vector3d_t)*vel.size();
-            size_t total_size = data_size + sizeof(data_size); 
+            std::string vtk_buffer("");
 
-            // Now, create a buffer of bytes to encode...
-            auto raw_buffer = \
-                reinterpret_cast<uint8_t*>(malloc(total_size));
+            if (format == "binary"){
+                // We need to prepend the data sizes in bytes to the main dataset
+                size_t data_size = sizeof(vector3d_t)*vel.size();
+                size_t total_size = data_size + sizeof(data_size); 
 
-            // ... prepend the size header
-            auto loc = reinterpret_cast<const uint8_t*>(&data_size);
-            std::copy(loc,
-                      loc + sizeof(data_size),
-                      raw_buffer);
+                // Now, create a buffer of bytes to encode...
+                auto raw_buffer = \
+                    reinterpret_cast<uint8_t*>(malloc(total_size));
 
-            // ... append the raw data
-            memcpy(raw_buffer + sizeof(data_size),
-                   (uint8_t*)vel.data(),
-                   data_size);
+                // ... prepend the size header
+                auto loc = reinterpret_cast<const uint8_t*>(&data_size);
+                std::copy(loc,
+                        loc + sizeof(data_size),
+                        raw_buffer);
 
-            // Encode and append the solution vector data in base64 to
-            // support the XML format
-            auto vtk_buffer = base64_encode(raw_buffer,
-                                            total_size);
+                // ... append the raw data
+                memcpy(raw_buffer + sizeof(data_size),
+                    (uint8_t*)vel.data(),
+                    data_size);
 
-            // Free the byte array so we don't leak memory
-            free(raw_buffer);
+                // Encode and append the solution vector data in base64 to
+                // support the XML format
+                vtk_buffer = base64_encode(raw_buffer, total_size);
 
-            /*
-            if(format == "ascii"){
+                // Free the byte array so we don't leak memory
+                free(raw_buffer);
+            }
+
+            
+            else if(format == "ascii"){
                 std::stringstream ss;
                 
                 for(int i=0;i<vel.size(); i++){
                     ss << vel[i] << " ";
                 }
 
-                auto vtk_buffer = ss.str();
-            }*/
+                vtk_buffer = ss.str();
+            }
+            else{
+                std::cerr << "Warning: Output dataset format not "
+                          << "recognized. Data will not be written.\n";
+            }
 
             // Add the encoded dataset to the buffer.
             auto rawdat = data_array.append_child(pugi::node_pcdata);
