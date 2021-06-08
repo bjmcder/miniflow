@@ -6,9 +6,18 @@
 #include "Types.hpp"
 #include "Solution.hpp"
 
+// Forward Declarations
 template<typename T>
 struct Solution;
 
+/******************************************************************************
+ * BoundaryConditions - A class for defining and applying boundary conditions
+ * to a flow solution field.
+ * 
+ * Template Parameters
+ * -------------------
+ * T : Numeric type (float or double recommended)
+******************************************************************************/
 template<typename T>
 class BoundaryConditions{
 
@@ -21,15 +30,25 @@ class BoundaryConditions{
         enum BOUNDARY{WEST=0, EAST, SOUTH, NORTH, DOWN, UP};
         enum BOUNDARY_TYPES{FREE_SLIP=0, NO_SLIP, INFLOW, OUTFLOW, PERIODIC};
 
-        /**
+        /**********************************************************************
          * Default constructor (Does nothing).
-        */
+        **********************************************************************/
         BoundaryConditions(){}
 
-        /**
+        /**********************************************************************
          * Preferred constructor from user-specified boundary conditions
          * and boundary motion vectors.
-        */
+         * 
+         * Parameters
+         * ----------
+         * condtions : std::vector<int>&
+         *  A vector of integer-specified boundary conditions in canonical
+         *  order (W,E,S,N,D,U).
+         * 
+         * motion : std::vector<std::array<T,3>>&
+         *  A vector of 3-element arrays specifying velocities of boundaries
+         * (e.g. for lid-driven cavity problems).
+        **********************************************************************/
         BoundaryConditions(std::vector<int>& conditions, 
                            std::vector<std::array<T,3>>& motion){
 
@@ -41,9 +60,25 @@ class BoundaryConditions{
         }
 
 
-        /**
-         * No-slip boundary condition.
-        */
+        /**********************************************************************
+         * No-slip boundary condition. Enforces the condition that the
+         * velocity component normal to the boundary equals zero. This is done
+         * by setting the velocity component in the boundary cell equal to the
+         * negative of the component in the immediately adjacent cell.
+         * 
+         * Example - West boundary:
+         * U(0,j,k) = -U(1,j,k)
+         * 
+         * Parameters
+         * ----------
+         * field : Solution<T>&
+         *  The solution field that the boundary conditions are being applied
+         *  to.
+         * 
+         * boundary : int
+         *  The boundary along which we are applying the condition.
+         *  
+        **********************************************************************/
         void apply_noslip(Solution<T>& field, int boundary){
 
             auto& UVW = field.velocity;
@@ -125,31 +160,43 @@ class BoundaryConditions{
             }
         }
 
-        /**
-         * 
-        */
+        /**********************************************************************
+         * Free-slip boundary condition.
+        **********************************************************************/
         void apply_freeslip(Solution<T>& field, int boundary){
             throw std::invalid_argument("Free slip boundary not implemented.");
         }
 
-        /**
-         * 
-        */
+        /**********************************************************************
+         * Periodic boundary condition.
+        **********************************************************************/
         void apply_periodic(Solution<T>& field, int boundary){
             throw std::invalid_argument("Periodic boundary not implemented.");
         }
 
-        /**
-         * 
-        */
-        void apply_flow(Solution<T>& field, int boundary){
-            throw std::invalid_argument("Flow boundary not implemented.");
+        /**********************************************************************
+         * Inflow boundary condition.
+        **********************************************************************/
+        void apply_inflow(Solution<T>& field, int boundary){
+            throw std::invalid_argument("Inflow boundary not implemented.");
         }
 
-        /**
+        /**********************************************************************
+         * Outflow boundary condition.
+        **********************************************************************/
+        void apply_Outflow(Solution<T>& field, int boundary){
+            throw std::invalid_argument("Outflow boundary not implemented.");
+        }
+
+        /**********************************************************************
+         * Apply all boundary conditions to the solution field.
          * 
-        */
-        void apply_conditions(Solution<T>& sol){
+         * Parameters
+         * ----------
+         * field : Solution<T>&
+         *  The object containg the solution field.
+        **********************************************************************/
+        void apply_conditions(Solution<T>& field){
 
             // Check each boundary
             for (int i=0; i<_conditions.size(); i++){
@@ -157,23 +204,23 @@ class BoundaryConditions{
                 switch(_conditions[i]){
                     
                     case FREE_SLIP:
-                        apply_freeslip(sol, i);
+                        apply_freeslip(field, i);
                         break;
 
                     case NO_SLIP:
-                        apply_noslip(sol, i);
+                        apply_noslip(field, i);
                         break;
 
                     case INFLOW:
-                        apply_flow(sol,i);
+                        apply_inlow(field,i);
                         break;
 
                     case OUTFLOW:
-                        apply_flow(sol,i);
+                        apply_outflow(field,i);
                         break;
 
                     case PERIODIC:
-                        apply_periodic(sol, i);
+                        apply_periodic(field, i);
                         break;
                       
                     default:
@@ -183,10 +230,15 @@ class BoundaryConditions{
             }
         }
 
-        /**
+        /**********************************************************************
          * Applies a tangential velocity to each boundary, if specified in the
          * user's input.
-        */
+         * 
+         * Parameters
+         * ----------
+         * field : Solution<T>&
+         *  The object containg the solution field.
+        **********************************************************************/
         void apply_motions(Solution<T>& field){
 
             auto& UVW = field.velocity;
@@ -197,8 +249,8 @@ class BoundaryConditions{
 
             for(int b=0; b<_motion.size(); b++){
 
-                // If the boundary motion is zero, don't bother going any
-                // further.
+                // If the boundary motion is zero in all components, don't 
+                // bother going any further.
                 if (_motion[b] == 0.0) continue;
 
                 // Since the input defines the boundary velocity as a
@@ -208,8 +260,9 @@ class BoundaryConditions{
 
                 switch(b){
 
-                    // West & East boundaries: Only the YZ components of the boundary
-                    // motion are considered.
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                    // West & East boundaries: Only the YZ components of the 
+                    // boundary motion are considered.
                     case WEST:
                         for(int k=0; k<=kmax; k++){
                             for(int j=0; j<=jmax; j++){
@@ -230,6 +283,7 @@ class BoundaryConditions{
                         }
                         break;
 
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // South & North boundaries: only the XZ components of the
                     // boundary motion are considered.
                     case SOUTH:
@@ -252,6 +306,7 @@ class BoundaryConditions{
                         }
                         break;
 
+                    // - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Down & Up boundaries: only the XY components of the
                     // boundary motion are considered.
                     case DOWN:
