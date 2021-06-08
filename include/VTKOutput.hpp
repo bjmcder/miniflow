@@ -13,6 +13,20 @@
 #include "Solution.hpp"
 #include "OutputSettings.hpp"
 
+
+/**
+ * VTKFile - A class for generating and writing VTK-formatted files. 
+ * Specifically, this class wites VTI (imgage data) files, since the
+ * solution data is specified on a Cartesian grid with uniform spacing
+ * in each direction.
+ * 
+ * PugiXML is used to handle the XML document structure and formatting.
+ * 
+ * Template Parameters
+ * -------------------
+ * T - Numeric type (float or double recommended)
+ * 
+*/
 template<typename T>
 class VTKFile{
 
@@ -26,9 +40,21 @@ class VTKFile{
 
     public:
 
-        /**
+        /**********************************************************************
          * Default constructor. Construct a blank VTI file structure.
-        */
+         * 
+         * Parameters
+         * ----------
+         * settings : OutputSettings
+         *  An OutputSettings object contining user-defined behaviors for 
+         *  writing the output.
+         * 
+         * fpath : std::string
+         *  Path to write the output file.
+         * 
+         * vtk_type : std::string
+         *  The type of VTK file to write (VTI, VTR, VTS, VTU, VTP...)
+        ***********************************************************************/
         VTKFile(OutputSettings settings,
                 std::string fpath="miniflow.vti",
                 std::string vtk_type="ImageData"){
@@ -40,9 +66,9 @@ class VTKFile{
             create_document();
         }
 
-        /**
-         * 
-        */
+        /**********************************************************************
+         * Initialize an XML document with a blank VTK file structure.
+        **********************************************************************/
         void create_document(){
             
             // Create the XML declaration
@@ -55,10 +81,16 @@ class VTKFile{
             create_dataset(_vtk_type);
         }
 
-        /**
+        /**********************************************************************
          * Set the extent attributes in the VTK file from the problem
          * geometry parameters.
-        */
+         * 
+         * Parameters
+         * ----------
+         * problem : Problem<T>&
+         *  The user-defined problem definitions contining the problem
+         *  geometry.
+        **********************************************************************/
         void set_geometry(Problem<T>& problem){
 
             auto& geom = problem.geometry();
@@ -97,9 +129,14 @@ class VTKFile{
             piece_extent.set_value(extent_str.c_str());
         }
 
-        /**
+        /**********************************************************************
+         * Store the velocity vector field from the current solution.
          * 
-        */
+         * Parameters
+         * ----------
+         * solution : Solution<T>&
+         *  The current solution object containing the velocity field.
+        **********************************************************************/
         void store_velocity(Solution<T>& solution){
 
             // Get the raw solution vector. Paraview can infer the strides
@@ -152,14 +189,14 @@ class VTKFile{
                 free(raw_buffer);
             }
 
-            
+            // If we have an ascii-formatted file, just send all the data
+            // values to a string. 
             else if(format == "ascii"){
                 std::stringstream ss;
                 
                 for(int i=0;i<vel.size(); i++){
                     ss << vel[i] << " ";
                 }
-
                 vtk_buffer = ss.str();
             }
             else{
@@ -167,14 +204,22 @@ class VTKFile{
                           << "recognized. Data will not be written.\n";
             }
 
-            // Add the encoded dataset to the buffer.
+            // Add the dataset to the buffer.
             auto rawdat = data_array.append_child(pugi::node_pcdata);
             rawdat.set_value(vtk_buffer.c_str());
         }
 
-        /**
+        /**********************************************************************
+         * Create the XML declaration header in the document.
          * 
-        */
+         * Parameters
+         * ----------
+         * version : std::string
+         *  XML version <major>.<minor>
+         * 
+         * encoding : std::string
+         *  Character encoding format for the XML file (e.g. UTF-8)
+        **********************************************************************/
         void create_xml_declaration(std::string version="1.0", 
                                     std::string encoding="utf-8"){
 
@@ -185,9 +230,26 @@ class VTKFile{
             declaration_node.append_attribute("encoding") = encoding.c_str();
         }
 
-        /**
+        /**********************************************************************
+         * Create the top-level VTK section in the XML document.
          * 
-        */
+         * Parameters
+         * ----------
+         * type : std::string
+         *  Type of VTK file being written
+         * 
+         * version : std::string
+         *  VTK file version <major>.<minor>
+         * 
+         * byte_order : std::string
+         *  Byte ordering for binary data, BigEndian or LittleEndian
+         * 
+         * compressor : std::string
+         *  Compression algorithm used for binary data (if any)
+         * 
+         * header_type : std::string
+         *  The type of header for binary datasets.
+        **********************************************************************/
         void create_vtk_section(std::string type="ImageData",
                                 std::string version="1.0",
                                 std::string byte_order="LittleEndian",
@@ -204,9 +266,14 @@ class VTKFile{
             
         }
 
-        /**
+        /**********************************************************************
+         * Create a dataset section in the VTK file structure.
          * 
-        */
+         * Parameters
+         * ----------
+         * vtk_type : std::string
+         *  Type of VTK file being written
+        **********************************************************************/
         void create_dataset(std::string vtk_type){
 
             // ImageData
@@ -222,9 +289,9 @@ class VTKFile{
             }
         }
 
-        /**
-         * 
-        */
+        /**********************************************************************
+         * Create a VTI (ImageData) data section.
+        **********************************************************************/
         void create_vti_dataset(){
 
             // Get the VTK root section
@@ -246,21 +313,25 @@ class VTKFile{
             
         }
 
-        /**
+        /**********************************************************************
+         * Set the path to write files.
          * 
-        */
+         * Parameters
+         * ----------
+         * path : std::string
+         *  Path to write the VTK file.
+        **********************************************************************/
         void set_path(std::string path){
             _write_path = path;
         }
 
-        /**
+        /**********************************************************************
          * Save the data to a VTK file.
-        */
+        **********************************************************************/
         void save_file(){
 
             _vtk_doc.save_file(_write_path.c_str(), PUGIXML_TEXT("    "));
         }
-
 };
 
 #endif
