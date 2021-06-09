@@ -613,7 +613,7 @@ class Solver{
                 auto output = VTKFile<T>(_output_settings, oname);
 
                 output.set_geometry(_problem);
-                output.store_velocity(_solution);
+                output.store_solution(_solution);
                 output.save_file();
             }
 
@@ -651,7 +651,7 @@ class Solver{
                     auto output = VTKFile<T>(_output_settings, oname);
 
                     output.set_geometry(_problem);
-                    output.store_velocity(_solution);
+                    output.store_solution(_solution);
                     output.save_file();
                 }
 

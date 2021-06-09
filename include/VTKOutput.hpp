@@ -129,41 +129,17 @@ class VTKFile{
             piece_extent.set_value(extent_str.c_str());
         }
 
-        /**********************************************************************
-         * Store the velocity vector field from the current solution.
+        /**
          * 
-         * Parameters
-         * ----------
-         * solution : Solution<T>&
-         *  The current solution object containing the velocity field.
-        **********************************************************************/
-        void store_velocity(Solution<T>& solution){
-
-            // Get the raw solution vector. Paraview can infer the strides
-            // from the dataset attributes.
-            auto& vel = solution.velocity.data();
-
-            int dim = solution.shape.size();
-
-            // Create the dataset and attributes
-            auto vtk_root = _vtk_doc.child("VTKFile");
-            auto vti_node = vtk_root.child("ImageData");
-            auto piece_node = vti_node.child("Piece");
-            auto pdata_node = piece_node.child("PointData");
-            auto data_array = pdata_node.append_child("DataArray");
-
-            data_array.append_attribute("type") = "Float64";
-            data_array.append_attribute("Name") = "Velocity";
-            data_array.append_attribute("NumberOfComponents") = 3;
-            
-            auto format = _settings.format;
-            data_array.append_attribute("format") = format.c_str();
+        */
+        template<typename RT>
+        std::string format_dataset(std::vector<RT>& data, std::string format){
 
             std::string vtk_buffer("");
 
             if (format == "binary"){
                 // We need to prepend the data sizes in bytes to the main dataset
-                size_t data_size = sizeof(vector3d_t)*vel.size();
+                size_t data_size = sizeof(RT)*data.size();
                 size_t total_size = data_size + sizeof(data_size); 
 
                 // Now, create a buffer of bytes to encode...
@@ -173,13 +149,13 @@ class VTKFile{
                 // ... prepend the size header
                 auto loc = reinterpret_cast<const uint8_t*>(&data_size);
                 std::copy(loc,
-                        loc + sizeof(data_size),
-                        raw_buffer);
+                          loc + sizeof(data_size),
+                          raw_buffer);
 
                 // ... append the raw data
                 memcpy(raw_buffer + sizeof(data_size),
-                    (uint8_t*)vel.data(),
-                    data_size);
+                       (uint8_t*)data.data(),
+                       data_size);
 
                 // Encode and append the solution vector data in base64 to
                 // support the XML format
@@ -194,8 +170,8 @@ class VTKFile{
             else if(format == "ascii"){
                 std::stringstream ss;
                 
-                for(int i=0;i<vel.size(); i++){
-                    ss << vel[i] << " ";
+                for(int i=0;i<data.size(); i++){
+                    ss << data[i] << " ";
                 }
                 vtk_buffer = ss.str();
             }
@@ -204,8 +180,57 @@ class VTKFile{
                           << "recognized. Data will not be written.\n";
             }
 
+            return vtk_buffer;
+        }
+
+        /**********************************************************************
+         * Store the velocity vector field from the current solution.
+         * 
+         * Parameters
+         * ----------
+         * solution : Solution<T>&
+         *  The current solution object containing the velocity field.
+        **********************************************************************/
+        void store_solution(Solution<T>& solution){
+
+            // Get the raw solution vector. Paraview can infer the strides
+            // from the dataset attributes.
+            auto& vel = solution.velocity.data();
+            auto& press = solution.pressure.data();
+
+            int dim = solution.shape.size();
+
+            // Create the dataset and attributes
+            auto vtk_root = _vtk_doc.child("VTKFile");
+            auto vti_node = vtk_root.child("ImageData");
+            auto piece_node = vti_node.child("Piece");
+            auto pdata_node = piece_node.child("PointData");
+
+            // Create Velocity
+            auto vel_array = pdata_node.append_child("DataArray");
+
+            vel_array.append_attribute("type") = "Float64";
+            vel_array.append_attribute("Name") = "Velocity";
+            vel_array.append_attribute("NumberOfComponents") = 3;
+            
+            auto format = _settings.format;
+            vel_array.append_attribute("format") = format.c_str();
+
             // Add the dataset to the buffer.
-            auto rawdat = data_array.append_child(pugi::node_pcdata);
+            auto rawdat = vel_array.append_child(pugi::node_pcdata);
+            std::string vtk_buffer = format_dataset(vel, format);
+            rawdat.set_value(vtk_buffer.c_str());
+
+            // Create Pressure
+            auto press_array = pdata_node.append_child("DataArray");
+
+            press_array.append_attribute("type") = "Float64";
+            press_array.append_attribute("Name") = "Pressure";
+            press_array.append_attribute("NumberOfComponents") = 1;
+            press_array.append_attribute("format") = format.c_str();
+
+            rawdat = press_array.append_child(pugi::node_pcdata);
+            vtk_buffer = format_dataset(press, format);
             rawdat.set_value(vtk_buffer.c_str());
         }
 
