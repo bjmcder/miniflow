@@ -207,8 +207,6 @@ class Input{
     */
     BoundaryConditions<T> build_boundary_conditions(){
 
-        std::cout << "boundaries\n";
-
         auto conditions = _toml_dat.get<toml::Table>("boundary.conditions");
         auto motion = _toml_dat.get<toml::Table>("boundary.motion");
 

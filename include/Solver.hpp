@@ -2,6 +2,7 @@
 #define SOLVER_HPP
 
 #include <limits>
+#include <omp.h>
 
 #include "Solution.hpp"
 #include "Problem.hpp"
@@ -289,6 +290,7 @@ class Solver{
             // Apply the discrete advection-diffusion operator to each
             // non-boundary element in the problem.
 
+            #pragma omp parallel for           
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
                     for(int i=1; i<imax; i++){
@@ -306,6 +308,7 @@ class Solver{
             // interior cells.
 
             // West, East
+            //#pragma omp parallel for
             for(int k=0; k<=kmax; k++){
                 for(int j=0; j<=jmax; j++){
 
@@ -314,6 +317,7 @@ class Solver{
                 }
             }
             // South, North
+            //#pragma omp parallel for
             for(int k=0; k<=kmax; k++){
                 for(int i=0; i<=imax; i++){
 
@@ -322,6 +326,7 @@ class Solver{
                 }
             }
             // Down, Up
+            //#pragma omp parallel for
             for(int j=0; j<=jmax; j++){
                 for(int i=0; i<=imax; i++){
 
@@ -349,6 +354,8 @@ class Solver{
             auto inv_dt = 1/dt;
             vector3d_t inv_h = {1/dh[0], 1/dh[1], 1/dh[2]};
             vector3d_t vsum = {0.0, 0.0, 0.0};
+
+            #pragma omp parallel for
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
                     for(int i=1; i<imax; i++){
@@ -390,7 +397,9 @@ class Solver{
                                            0.0);
 
             // Copy the adjacent pressures into the boundary cells
+        
             // West, East
+            //#pragma omp parallel for 
             for(int k=0; k<=kmax; k++){
                 for(int j=0; j<=jmax; j++){
 
@@ -399,6 +408,7 @@ class Solver{
                 }
             }
             // South, North
+            //#pragma omp parallel for
             for(int k=0; k<=kmax; k++){
                 for(int i=0; i<=imax; i++){
 
@@ -407,6 +417,7 @@ class Solver{
                 }
             }
             // Down, Up
+            //#pragma omp parallel for
             for(int j=0; j<=jmax; j++){
                 for(int i=0; i<=imax; i++){
 
@@ -414,7 +425,7 @@ class Solver{
                     P(i,j,kmax) = P(i,j,kmax-1);
                 }
             } 
-
+            
             // Pre-compute the squares of the mesh sizes
             std::array<T,3> dh2;
             for(int d=0; d<dim; d++){
@@ -433,6 +444,7 @@ class Solver{
 
             // Solve for the pressures in the internal cells
             T del_p(0.0);
+            //#pragma omp parallel for   
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
                     for(int i=1; i<imax; i++){
@@ -447,7 +459,7 @@ class Solver{
                     }
                 }
             }
-           
+
             compute_norms();
 
             _stats.l2_norm /= psum;
@@ -520,6 +532,7 @@ class Solver{
 
             T dtdx(dt/dh[0]), dtdy(dt/dh[1]), dtdz(dt/dh[2]);
 
+            #pragma omp parallel for   
             for(int k=1; k<kmax-1; k++){
                 for(int j=1; j<jmax-1; j++){
                     for(int i=1;i<imax-1; i++){
@@ -590,13 +603,30 @@ class Solver{
             auto tmax = _problem.timestepper().max_time();
 
             int step_count = 0;
+            if(step_count == 0){
+
+                auto bname = _output_settings.base_name;
+
+                std::string oname = \
+                    bname + std::to_string(step_count) + ".vti";
+
+                auto output = VTKFile<T>(_output_settings, oname);
+
+                output.set_geometry(_problem);
+                output.store_velocity(_solution);
+                output.save_file();
+            }
+
             do{
                 step_count++;
 
-                std::cout << "---------------------------------------------\n";
+                std::cout << "\n---------------------------------------------\n";
 
                 std::cout << "\tTimestep " << step_count << " (t = "
                           << _problem.timestepper().current_time()
+                          << ", "
+                          << "\u0394t = "
+                          << _problem.timestepper().dt()
                           << ")\n\n";
 
                 // Solve the current timestep
