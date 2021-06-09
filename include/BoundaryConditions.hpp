@@ -184,7 +184,7 @@ class BoundaryConditions{
         /**********************************************************************
          * Outflow boundary condition.
         **********************************************************************/
-        void apply_Outflow(Solution<T>& field, int boundary){
+        void apply_outflow(Solution<T>& field, int boundary){
             throw std::invalid_argument("Outflow boundary not implemented.");
         }
 
@@ -212,7 +212,7 @@ class BoundaryConditions{
                         break;
 
                     case INFLOW:
-                        apply_inlow(field,i);
+                        apply_inflow(field,i);
                         break;
 
                     case OUTFLOW:
