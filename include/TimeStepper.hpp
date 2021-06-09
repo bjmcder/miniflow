@@ -133,7 +133,7 @@ class TimeStepper{
 
             // If the next timestep would get set to zero or a negative value, 
             // then don't update it. Keep the user-defined one instead.
-            if((dt_new <= 0.0) || (dt_new < (_dt0/1000))) dt_new = _dt0;
+            if(dt_new <= 0.0) dt_new = _dt0;
 
             // Store the updated timestep size and advance the current time.
             _dt = dt_new;
