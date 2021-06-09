@@ -173,6 +173,16 @@ class Vec3{
         }
 
         /**
+         * Unary negation operator. Negate each component of the vector.
+        */
+        Vec3<T>& operator-(){
+            _data[0] = -_data[0];
+            _data[1] = -_data[1];
+            _data[2] = -_data[2];
+            return (*this);
+        }
+
+        /**
          * Return the sum of the vector's components.
         */
         T sum(){ return _data[0] + _data[1] + _data[2];}

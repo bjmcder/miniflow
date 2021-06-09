@@ -93,9 +93,7 @@ class BoundaryConditions{
                     for(int k=0; k<=kmax; k++){
                         for(int j=0; j<=jmax; j++){
 
-                            UVW(0,j,k).u() = -UVW(1,j,k).u();
-                            UVW(0,j,k).v() = 0.0;
-                            UVW(0,j,k).w() = 0.0; 
+                            UVW(0,j,k) = -UVW(1,j,k);
                         }
                     }  
                     break;
@@ -104,9 +102,7 @@ class BoundaryConditions{
                     for(int k=0; k<=kmax; k++){
                         for(int j=0; j<=jmax; j++){
 
-                            UVW(imax,j,k).u() = -UVW(imax-1,j,k).u();
-                            UVW(imax,j,k).v() = 0.0;
-                            UVW(imax,j,k).w() = 0.0;
+                            UVW(imax,j,k) = -UVW(imax-1,j,k);
                         }
                     }
                     break;
@@ -115,9 +111,7 @@ class BoundaryConditions{
                     for(int k=0; k<=kmax; k++){
                         for(int i=0; i<=imax; i++){
 
-                            UVW(i,0,k).u() = 0.0;
-                            UVW(i,0,k).v() = -UVW(i,1,k).v();
-                            UVW(i,0,k).w() = 0.0;
+                            UVW(i,0,k) = -UVW(i,1,k);
                         }
                     }
                     break;
@@ -126,9 +120,7 @@ class BoundaryConditions{
                     for(int k=0; k<=kmax; k++){
                         for(int i=0; i<=imax; i++){
 
-                            UVW(i,jmax,k).u() = 0.0;
-                            UVW(i,jmax,k).v() = -UVW(i,jmax-1,k).v();
-                            UVW(i,jmax,k).w() = 0.0;
+                            UVW(i,jmax,k) = -UVW(i,jmax-1,k);
                         }
                     }
                     break;
@@ -137,9 +129,7 @@ class BoundaryConditions{
                     for(int j=0; j<=jmax; j++){
                         for(int i=0; i<=imax; i++){
 
-                            UVW(i,j,0).u() = 0.0;
-                            UVW(i,j,0).v() = 0.0;
-                            UVW(i,j,0).w() = -UVW(i,j,0).w();
+                            UVW(i,j,0) -UVW(i,j,0);
                         }   
                     }
                     break;
@@ -148,9 +138,7 @@ class BoundaryConditions{
                     for(int j=0; j<=jmax; j++){
                         for(int i=0; i<=imax; i++){
 
-                            UVW(i,j,kmax).u() = 0.0;
-                            UVW(i,j,kmax).v() = 0.0;
-                            UVW(i,j,kmax).w() = -UVW(i,j,kmax-1).w();
+                            UVW(i,j,kmax) =-UVW(i,j,kmax-1);
                         }   
                     }
                     break;
@@ -164,14 +152,144 @@ class BoundaryConditions{
          * Free-slip boundary condition.
         **********************************************************************/
         void apply_freeslip(Solution<T>& field, int boundary){
-            throw std::invalid_argument("Free slip boundary not implemented.");
+            
+            auto& UVW = field.velocity;
+
+            const auto& imax = field.shape[0]-1;
+            const auto& jmax = field.shape[1]-1;
+            const auto& kmax = field.shape[2]-1;
+
+            switch(boundary){
+
+                case WEST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(0,j,k) = 0.0;
+                        }
+                    }  
+                    break;
+                    
+                case EAST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(imax,j,k) = 0.0;
+                        }
+                    }
+                    break;
+
+                case SOUTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,0,k) = 0.0;
+                        }
+                    }
+                    break;
+
+                case NORTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,jmax,k) = 0.0;
+                        }
+                    }
+                    break;
+
+                case DOWN:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,0) = 0.0;
+                        }   
+                    }
+                    break;
+
+                case UP:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,kmax) = 0.0;
+                        }   
+                    }
+                    break;
+
+                default:
+                    throw std::invalid_argument("Invalid boundary direction.");
+            }
         }
 
         /**********************************************************************
          * Periodic boundary condition.
         **********************************************************************/
         void apply_periodic(Solution<T>& field, int boundary){
-            throw std::invalid_argument("Periodic boundary not implemented.");
+
+            auto& UVW = field.velocity;
+
+            const auto& imax = field.shape[0]-1;
+            const auto& jmax = field.shape[1]-1;
+            const auto& kmax = field.shape[2]-1;
+
+            switch(boundary){
+
+                case WEST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(0,j,k) = UVW(imax-1,j,k);
+                        }
+                    }  
+                    break;
+                    
+                case EAST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(imax,j,k) = UVW(1,j,k);
+                        }
+                    }
+                    break;
+
+                case SOUTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,0,k) = UVW(i,jmax-1,k);
+                        }
+                    }
+                    break;
+
+                case NORTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,jmax,k) = UVW(i,1,k);
+                        }
+                    }
+                    break;
+
+                case DOWN:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,0) = UVW(i,j,kmax-1);
+                        }   
+                    }
+                    break;
+
+                case UP:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,kmax) = UVW(i,j,1);
+                        }   
+                    }
+                    break;
+
+                default:
+                    throw std::invalid_argument("Invalid boundary direction.");
+            }
         }
 
         /**********************************************************************
@@ -185,7 +303,72 @@ class BoundaryConditions{
          * Outflow boundary condition.
         **********************************************************************/
         void apply_outflow(Solution<T>& field, int boundary){
-            throw std::invalid_argument("Outflow boundary not implemented.");
+
+            auto& UVW = field.velocity;
+
+            const auto& imax = field.shape[0]-1;
+            const auto& jmax = field.shape[1]-1;
+            const auto& kmax = field.shape[2]-1;
+
+            switch(boundary){
+
+                case WEST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(0,j,k) = UVW(1,j,k);
+                        }
+                    }  
+                    break;
+                    
+                case EAST:
+                    for(int k=0; k<=kmax; k++){
+                        for(int j=0; j<=jmax; j++){
+
+                            UVW(imax,j,k) = UVW(imax-1,j,k);
+                        }
+                    }
+                    break;
+
+                case SOUTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,0,k) = UVW(i,1,k);
+                        }
+                    }
+                    break;
+
+                case NORTH:
+                    for(int k=0; k<=kmax; k++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,jmax,k) = UVW(i,jmax-1,k);
+                        }
+                    }
+                    break;
+
+                case DOWN:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,0) = UVW(i,j,1);
+                        }   
+                    }
+                    break;
+
+                case UP:
+                    for(int j=0; j<=jmax; j++){
+                        for(int i=0; i<=imax; i++){
+
+                            UVW(i,j,kmax) = UVW(i,j,kmax-1);
+                        }   
+                    }
+                    break;
+
+                default:
+                    throw std::invalid_argument("Invalid boundary direction.");
+            }
         }
 
         /**********************************************************************
