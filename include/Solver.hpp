@@ -140,20 +140,6 @@ class Solver{
         }
 
         /**********************************************************************
-         * Convert a vector of indices to a formatted string for debugging.
-        **********************************************************************/
-        std::string idx_to_str(std::vector<size_t>& idxs){
-            std::string str = "(";
-
-            for(const auto& idx: idxs){
-                str += std::to_string(idx);
-                str += ", ";
-            }
-            str += ")";
-            return str;
-        }
-
-        /**********************************************************************
          *
         **********************************************************************/
         T upwind_difference(int dir1, int dir2, int i, int j, int k){
@@ -219,8 +205,6 @@ class Solver{
                     advec(d1) -= upwind_difference(d1, d2, i, j, k);
                 }
             }
-            //std::cout << i << j << k << " ";
-            //std::cout << "(" << advec << ")\n";
             return advec;
         }
 
@@ -289,7 +273,6 @@ class Solver{
 
             // Apply the discrete advection-diffusion operator to each
             // non-boundary element in the problem.
-
             #pragma omp parallel for
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
@@ -305,10 +288,9 @@ class Solver{
             }
 
             // For the boundary cells, copy in the velocities of the adjacent
-            // interior cells.
+            // interior cells...
 
-            // West, East
-            //#pragma omp parallel for
+            // ...West, East
             for(int k=0; k<=kmax; k++){
                 for(int j=0; j<=jmax; j++){
 
@@ -316,8 +298,7 @@ class Solver{
                     FGH(imax,j,k) = UVW(imax,j,k);
                 }
             }
-            // South, North
-            //#pragma omp parallel for
+            // ...South, North
             for(int k=0; k<=kmax; k++){
                 for(int i=0; i<=imax; i++){
 
@@ -325,8 +306,7 @@ class Solver{
                     FGH(i,jmax,k) = UVW(i,jmax,k);
                 }
             }
-            // Down, Up
-            //#pragma omp parallel for
+            // ...Down, Up
             for(int j=0; j<=jmax; j++){
                 for(int i=0; i<=imax; i++){
 
@@ -337,7 +317,7 @@ class Solver{
         }
 
         /**********************************************************************
-         * Pre-compute the right-hand side of the pressure equation
+         * Pre-compute the right-hand side of the pressure equation.
         **********************************************************************/
         void compute_rhs(){
 
@@ -374,7 +354,7 @@ class Solver{
 
         /**********************************************************************
          * Perform a single SOR iteration on the pressure field.
-        */
+        **********************************************************************/
         void sor_iteration(){
 
             _stats.reset_norm();
@@ -396,10 +376,9 @@ class Solver{
                                            P.data().begin(),
                                            0.0);
 
-            // Copy the adjacent pressures into the boundary cells
+            // Copy the adjacent pressures into the boundary cells...
 
-            // West, East
-            //#pragma omp parallel for
+            // ...West, East
             for(int k=0; k<=kmax; k++){
                 for(int j=0; j<=jmax; j++){
 
@@ -407,8 +386,7 @@ class Solver{
                     P(imax,j,k) = P(imax-1,j,k);
                 }
             }
-            // South, North
-            //#pragma omp parallel for
+            // ...South, North
             for(int k=0; k<=kmax; k++){
                 for(int i=0; i<=imax; i++){
 
@@ -416,8 +394,7 @@ class Solver{
                     P(i,jmax,k) = P(i,jmax-1,k);
                 }
             }
-            // Down, Up
-            //#pragma omp parallel for
+            // ...Down, Up
             for(int j=0; j<=jmax; j++){
                 for(int i=0; i<=imax; i++){
 
@@ -432,7 +409,7 @@ class Solver{
                 dh2[d] = dh[d]*dh[d];
             }
 
-            // Pre-compute:
+            // Pre-compute overrelaxation coefficients
             // b1 = (1-omega)
             // b2 = omega/(2/dx^2 + 2/dy^2 +...)
             T D1 = 0.0;
@@ -444,7 +421,7 @@ class Solver{
 
             // Solve for the pressures in the internal cells
             T del_p(0.0);
-            //#pragma omp parallel for   
+            #pragma omp parallel for   
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
                     for(int i=1; i<imax; i++){
@@ -466,9 +443,9 @@ class Solver{
             _stats.linf_norm /= psum;
         }
 
-        /**
+        /**********************************************************************
          * Compute the L2 and L-inf norms.
-        */
+        **********************************************************************/
         void compute_norms(){
 
             auto nelem = _problem.geometry().total_cells();
@@ -483,12 +460,12 @@ class Solver{
             l_inf = _stats.residual_max;
         }
 
-        /**
+        /**********************************************************************
          * Solve for the pressure field using the successive over-relaxation
          * (SOR) method. Iterate until the L2 norm reaches a tolerance
          * threshold, or until the solver reaches a maximum number of
          * iterations.
-        */
+        **********************************************************************/
         void solve_pressure(){
 
             _stats.reset();
@@ -512,9 +489,9 @@ class Solver{
                       << "\n";
         }
 
-        /**
+        /**********************************************************************
          * Update the velocity field based on the computed pressure field.
-        */
+        **********************************************************************/
         void update_velocity(){
 
             const auto& dt = _problem.timestepper().dt();
@@ -548,35 +525,24 @@ class Solver{
             }
         }
 
-        /**
+        /**********************************************************************
          * Perform a single timestep. This consists of applying boundary
          * conditions and motions, computing the intermediate velocity field
          * based on an advection-diffusion operator, converging the pressure
          * field using the SOR method, then finally updating the velocity
          * field.
-        */
+        **********************************************************************/
         void step(){
 
             // Apply boundary conditions
             _problem.boundaries().apply_conditions(_solution);
             _problem.boundaries().apply_motions(_solution);
 
-
             // Compute the intermediate velocities
             compute_intermediate_velocity();
 
-            /*std::cout << "\n*** FGH ***\n";
-            for(int i=0; i<_solution.intermediate_velocity.data().size(); i++){
-                std::cout << "i = " << i << "\t" << _solution.intermediate_velocity.data()[i] << "\n";
-            }*/
-
             // Construct the right-hand side of the pressure equation
             compute_rhs();
-
-            /*std::cout << "\n*** RHS ***\n";
-            for(int i=0; i<_solution.rhs.data().size(); i++){
-                std::cout << "i = " << i << "\t" << _solution.rhs.data()[i] << "\n";
-            }*/
 
             // Solve for the pressure
             solve_pressure();
@@ -584,20 +550,15 @@ class Solver{
             // Update the velocity components
             update_velocity();
 
-            /*std::cout << "\n*** UVW (post-step)***\n";
-            for(int i=0; i<_solution.velocity.data().size(); i++){
-                std::cout << "i = " << i << "\t" << _solution.velocity.data()[i] << "\n";
-            }*/
-
         }
 
-        /**
+        /**********************************************************************
          * Solve the time-dependent Navier-Stokes equations. We use an explicit
          * Euler method for time stepping, and adaptively advance the time step
          * based on sability criteria. At each step, we converge the pressure
          * field using the successive over-relaxation (SOR) method then project
          * this solution to determine the velocity field.
-        */
+        ***********************************************************************/
         void solve(){
 
             auto tmax = _problem.timestepper().max_time();
@@ -659,7 +620,7 @@ class Solver{
 
             std::cout << "---------------------------------------------\n";
             std::cout << "\n*** Solution complete! (t = "
-              << _problem.timestepper().current_time() << ")***\n";
+                      << _problem.timestepper().current_time() << ")***\n";
         }
 };
 

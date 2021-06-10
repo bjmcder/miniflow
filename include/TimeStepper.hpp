@@ -1,13 +1,17 @@
-#ifndef __TIMESTEPPER_HPP
-#define __TIMESTEPPER_HPP
+#ifndef TIMESTEPPER_HPP
+#define TIMESTEPPER_HPP
 
 #include <limits>
 
-/**
+/******************************************************************************
  * Timestepper class. Controls the tracking of time dependence in the problem,
  * and adaptively advances to the next timestep based on the the
  * Courant-Friedrichs-Levy criterion. 
-*/
+ * 
+ * Template Parameters
+ * -------------------
+ * T : numeric type (float or double preferred)
+******************************************************************************/
 template<typename T>
 class TimeStepper{
 
@@ -20,15 +24,15 @@ class TimeStepper{
 
     public:
 
-        /**
+        /**********************************************************************
          * Default constructor (does nothing).
-        */
+        **********************************************************************/
        TimeStepper(){}
 
-        /**
+        /**********************************************************************
          * Preferred constructor from user specified time limit, adaptive
          * safety factor, and initial step size.
-        */
+        **********************************************************************/
         TimeStepper(const T& t_max, const T& tau, const T& dt_0 = 0){
 
             _max_time = t_max;
@@ -38,25 +42,25 @@ class TimeStepper{
             _current_time = 0;
         }
 
-        /**
+        /**********************************************************************
          * Return the current step size.
-        */
+        **********************************************************************/
         const T& dt(){return _dt;}
 
-        /**
+        /**********************************************************************
          * Return the current time.
-        */
+        **********************************************************************/
         const T& current_time(){return _current_time;}
 
-        /**
+        /**********************************************************************
          * Return the time limit of the simulation.
-        */
+        **********************************************************************/
         const T& max_time(){return _max_time;}
  
-        /**
+        /**********************************************************************
          * Advance the timestep adaptively by choosing the minimum among
          * several stability criteria.
-        */
+        **********************************************************************/
         void advance(const std::array<T, 3>& cell_sizes,
                      const T& reynolds,
                      const std::array<T, 3>& max_vels){
