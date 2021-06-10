@@ -8,16 +8,16 @@ material_map=""
 [solver]
 upwind_factor=0.9
 relax_factor=1.6
-tolerance=1e-4
-max_iters=200
+tolerance=1e-6
+max_iters=100000
 
 [time]
-max_time=1.0
+max_time=10.0
 step_factor=0.5
 dt_start=0.01
 
 [flow]
-reynolds=100.0
+reynolds=1000.0
 initial_velocity=[0.0, 0.0, 0.0]
 body_force=[0.0, 0.0, 0.0]
 
