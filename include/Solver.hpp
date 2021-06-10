@@ -29,7 +29,7 @@ struct SolverSettings{
 
     /**
      * Default constructor. Initialize the solver with preset values for
-     * upwinding, relaxation, convergence tolerance and maximum iterations. 
+     * upwinding, relaxation, convergence tolerance and maximum iterations.
     */
     SolverSettings(): upwind_factor(0.5),
                       relax_factor(1.5),
@@ -43,7 +43,7 @@ struct SolverSettings{
                    const T& omega,
                    const T& tol,
                    const int& max_it){
-        
+
         upwind_factor = gamma;
         relax_factor = omega;
         tolerance = tol;
@@ -96,7 +96,7 @@ struct SolverStats{
 
 /******************************************************************************
  * Solver class. A collection of functions that operate on a problem
- * definition to solve the Navier-Stokes equations for vector and 
+ * definition to solve the Navier-Stokes equations for vector and
  * scalar fields. Based on Ch. 3 of "Numerical Simulation in Fluid Dynamics"
  * by Griebel, et al.OUTPUT_HPP
 ******************************************************************************/
@@ -122,7 +122,7 @@ class Solver{
          * Preferred constructor. Uses problem definition and solver settings
          * based on user input.
         **********************************************************************/
-        Solver(Problem<T>& problem, 
+        Solver(Problem<T>& problem,
                SolverSettings<T>& settings,
                OutputSettings& outsettings){
 
@@ -154,12 +154,12 @@ class Solver{
         }
 
         /**********************************************************************
-         * 
+         *
         **********************************************************************/
         T upwind_difference(int dir1, int dir2, int i, int j, int k){
 
             const auto& dh = _problem.geometry().cell_sizes();
-            const auto& gamma = _settings.upwind_factor;  
+            const auto& gamma = _settings.upwind_factor;
 
             T central = 0.0;
             T upwind = 0.0;
@@ -189,9 +189,9 @@ class Solver{
 
             T central_bwd = avg(UVW(bwd_idx2)[dir2], UVW(bwdfwd_idx1)[dir2]);
             central_bwd *= avg(UVW(bwd_idx2)[dir1], UVW(base_idx)[dir1]);
-        
+
             central = (1/dh[dir2])*(central_fwd - central_bwd);
-            
+
             T upwind_fwd = fabs(avg(UVW(base_idx)[dir2], UVW(fwd_idx1)[dir2]));
             upwind_fwd *= avg(UVW(base_idx)[dir1], -UVW(fwd_idx2)[dir1]);
 
@@ -276,7 +276,7 @@ class Solver{
             auto& UVW = _solution.velocity;
             auto& FGH = _solution.intermediate_velocity;
 
-            // Precompute and cache constants needed in later steps 
+            // Precompute and cache constants needed in later steps
             const auto& Re = _problem.flow_parameters().Re();
             const auto& inv_Re = 1/Re;
             const auto& dt = _problem.timestepper().dt();
@@ -290,7 +290,7 @@ class Solver{
             // Apply the discrete advection-diffusion operator to each
             // non-boundary element in the problem.
 
-            #pragma omp parallel for           
+            #pragma omp parallel for
             for(int k=1; k<kmax; k++){
                 for(int j=1; j<jmax; j++){
                     for(int i=1; i<imax; i++){
@@ -397,9 +397,9 @@ class Solver{
                                            0.0);
 
             // Copy the adjacent pressures into the boundary cells
-        
+
             // West, East
-            //#pragma omp parallel for 
+            //#pragma omp parallel for
             for(int k=0; k<=kmax; k++){
                 for(int j=0; j<=jmax; j++){
 
@@ -424,8 +424,8 @@ class Solver{
                     P(i,j,0) = P(i,j,1);
                     P(i,j,kmax) = P(i,j,kmax-1);
                 }
-            } 
-            
+            }
+
             // Pre-compute the squares of the mesh sizes
             std::array<T,3> dh2;
             for(int d=0; d<dim; d++){
@@ -454,7 +454,7 @@ class Solver{
                         del_p += (P(i+1,j,k) + P(i-1,j,k))/dh2[0];
                         del_p += (P(i,j+1,k) + P(i,j-1,k))/dh2[1];
                         del_p += (P(i,j,k+1) + P(i,j,k-1))/dh2[2];
-                        
+
                         P(i,j,k) = b1*P(i,j,k) + b2*(del_p - RHS(i,j,k));
                     }
                 }
@@ -496,27 +496,27 @@ class Solver{
             const auto& max_iters = _settings.max_iters;
 
             do{
-                
-                sor_iteration();
 
-                //std::cout << "iter = " << iter << " of " << max_iters << " ";
-                //std::cout << "L_2 = " << _stats.l2_norm << "\tL_inf = " << _stats.linf_norm << "\n";
+                sor_iteration();
 
                 iter++;
 
             }while ((iter < max_iters) &&
                     (_stats.l2_norm > _settings.tolerance));
-            std::cout << "\t\tL_2 = " << _stats.l2_norm << "\n\t\tL_inf = " << _stats.linf_norm << "\n";
-            //std::cout << "*** P (iter = " << iter << ")***\n";
-            //_solution.pressure.print_field2d(0);
-
+            std::cout << "\t\tL_2 = "
+                      << _stats.l2_norm
+                      << "\n\t\tL_inf = "
+                      << _stats.linf_norm
+                      << "\n\t\titers = "
+                      << iter
+                      << "\n";
         }
 
         /**
          * Update the velocity field based on the computed pressure field.
         */
         void update_velocity(){
-            
+
             const auto& dt = _problem.timestepper().dt();
             const auto& dh = _problem.geometry().cell_sizes();
             const auto& dim = _problem.geometry().dimension();
@@ -553,7 +553,7 @@ class Solver{
          * conditions and motions, computing the intermediate velocity field
          * based on an advection-diffusion operator, converging the pressure
          * field using the SOR method, then finally updating the velocity
-         * field. 
+         * field.
         */
         void step(){
 
@@ -656,9 +656,9 @@ class Solver{
                 }
 
             } while (_problem.timestepper().current_time() <= tmax);
-            
+
             std::cout << "---------------------------------------------\n";
-            std::cout << "\n*** Solution complete! (t = " 
+            std::cout << "\n*** Solution complete! (t = "
               << _problem.timestepper().current_time() << ")***\n";
         }
 };
