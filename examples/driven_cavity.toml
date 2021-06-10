@@ -9,15 +9,15 @@ material_map=""
 upwind_factor=0.9
 relax_factor=1.6
 tolerance=1e-6
-max_iters=100000
+max_iters=10000
 
 [time]
-max_time=10.0
+max_time=5.0
 step_factor=0.5
 dt_start=0.01
 
 [flow]
-reynolds=1000.0
+reynolds=100.0
 initial_velocity=[0.0, 0.0, 0.0]
 body_force=[0.0, 0.0, 0.0]
 
@@ -47,7 +47,7 @@ conditions = {north="noslip", south="noslip", east="noslip", west="noslip", down
 # in the Y-Z plane, since X components act normal to this boundary. Specifying a
 # nonzero vector component in the normal direction will result in an error.
 #
-motion = {north=[1.0, 0.0, 0.0]}
+motion = {up=[1.0, 0.0, 0.0]}
 
 [output]
 write_every=10
