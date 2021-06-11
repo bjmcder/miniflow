@@ -480,13 +480,14 @@ class Solver{
 
             }while ((iter < max_iters) &&
                     (_stats.l2_norm > _settings.tolerance));
-            std::cout << "\t\tL_2 = "
+            std::cout << "\t\tL\u2082 = "
                       << _stats.l2_norm
-                      << "\n\t\tL_inf = "
+                      << "\n\t\tL\u221e = "
                       << _stats.linf_norm
                       << "\n\t\titers = "
-                      << iter
-                      << "\n";
+                      << iter;
+                      if (iter >= max_iters) {std::cout << " (max)";}
+                      std::cout << "\n";
         }
 
         /**********************************************************************
@@ -526,6 +527,45 @@ class Solver{
         }
 
         /**********************************************************************
+         * Compute the vorticity, which is given by the
+         * curl of the velocity field: 
+         * 
+         *  ∇×U = ζ = (∂w/∂y-∂v/∂z, ∂u/∂z-∂w/∂x, ∂v/∂x-∂u/∂y)
+        **********************************************************************/
+        void compute_vorticity(){
+
+            auto& UVW = _solution.velocity;
+            auto& zeta = _solution.vorticity;
+
+            const auto& dh = _problem.geometry().cell_sizes();
+            const auto& imax = _problem.geometry().nx();
+            const auto& jmax = _problem.geometry().ny();
+            const auto& kmax = _problem.geometry().nz();
+
+            T dx(dh[0]), dy(dh[1]), dz(dh[2]);
+            vector3d_t vor = {0.0, 0.0, 0.0};
+
+            #pragma omp parallel for   
+            for(int k=1; k<kmax-1; k++){
+                for(int j=1; j<jmax-1; j++){
+                    for(int i=1;i<imax-1; i++){
+
+                        vor(0) = (UVW(i,j,k+1).w() - UVW(i,j,k).w())/dy - \
+                                 (UVW(i,j+1,k).v() - UVW(i,j,k).v())/dz;
+
+                        vor(1) = (UVW(i+1,j,k).u() - UVW(i,j,k).u())/dz - \
+                                 (UVW(i,j,k+1).w() - UVW(i,j,k).w())/dx;
+
+                        vor(2) = (UVW(i,j+1,k).v() - UVW(i,j,k).v())/dx - \
+                                 (UVW(i+1,j,k).u() - UVW(i,j,k).u())/dy;
+
+                        zeta(i,j,k) = vor;
+                    }
+                }
+            }
+        }
+
+        /**********************************************************************
          * Perform a single timestep. This consists of applying boundary
          * conditions and motions, computing the intermediate velocity field
          * based on an advection-diffusion operator, converging the pressure
@@ -550,6 +590,8 @@ class Solver{
             // Update the velocity components
             update_velocity();
 
+            // Compute the vorticity
+            compute_vorticity();
         }
 
         /**********************************************************************
@@ -581,7 +623,8 @@ class Solver{
             do{
                 step_count++;
 
-                std::cout << "\n---------------------------------------------\n";
+                std::cout << "\n---------------------------------------------"
+                          << "---------------\n";
 
                 std::cout << "\tTimestep " << step_count << " (t = "
                           << _problem.timestepper().current_time()
@@ -618,9 +661,10 @@ class Solver{
 
             } while (_problem.timestepper().current_time() <= tmax);
 
-            std::cout << "---------------------------------------------\n";
-            std::cout << "\n*** Solution complete! (t = "
-                      << _problem.timestepper().current_time() << ")***\n";
+            std::cout << "---------------------------------------------"
+                      << "---------------\n";
+            std::cout << "\n***** Solution complete! (t = "
+                      << _problem.timestepper().current_time() << ") *****\n";
         }
 };
 

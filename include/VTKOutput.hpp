@@ -189,7 +189,7 @@ class VTKFile{
          * Parameters
          * ----------
          * solution : Solution<T>&
-         *  The current solution object containing the velocity field.
+         *  The current solution object.
         **********************************************************************/
         void store_solution(Solution<T>& solution){
 
@@ -197,6 +197,7 @@ class VTKFile{
             // from the dataset attributes.
             auto& vel = solution.velocity.data();
             auto& press = solution.pressure.data();
+            auto& zeta = solution.vorticity.data();
 
             int dim = solution.shape.size();
 
@@ -216,9 +217,20 @@ class VTKFile{
             auto format = _settings.format;
             vel_array.append_attribute("format") = format.c_str();
 
-            // Add the dataset to the buffer.
             auto rawdat = vel_array.append_child(pugi::node_pcdata);
             std::string vtk_buffer = format_dataset(vel, format);
+            rawdat.set_value(vtk_buffer.c_str());
+
+            // Create Vorticity
+            auto vor_array = pdata_node.append_child("DataArray");
+
+            vor_array.append_attribute("type") = "Float64";
+            vor_array.append_attribute("Name") = "Vorticity";
+            vor_array.append_attribute("NumberOfComponents") = 3;
+            vor_array.append_attribute("format") = format.c_str();
+
+            rawdat = vor_array.append_child(pugi::node_pcdata);
+            vtk_buffer = format_dataset(zeta, format);
             rawdat.set_value(vtk_buffer.c_str());
 
             // Create Pressure

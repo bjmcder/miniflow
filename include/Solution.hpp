@@ -12,28 +12,29 @@
 template<typename T>
 class Problem;
 
-/**
+/******************************************************************************
  * Solution class. This is a container for all the data generated during the
  * solution of a Navier-Stokes problem.
-*/
+******************************************************************************/
 template<typename T>
 struct Solution{
 
     std::array<int,3> shape;
 
-    vector_field_t velocity;
-    vector_field_t intermediate_velocity;
-
+    // Primary quantities of interest
     scalar_field_t pressure;
+    vector_field_t velocity;
+    vector_field_t vorticity;
+
+    //scalar_field_t temperature
+
+    // Intermediate solution fields
+    vector_field_t intermediate_velocity;
     scalar_field_t rhs;
 
-    // TODO: Other fields to be implemented
-    //Field3<T> vorticity;
-    //Field3<T> temperature;
-
-    /**
+    /**************************************************************************
      * Default constructor (does nothing).
-    */
+    **************************************************************************/
     Solution(){}
 
     /**
@@ -57,33 +58,35 @@ struct Solution{
         initialize_solution(problem);
     }
 
-    /**
+    /**************************************************************************
      * Set the size of the solution fields.
-    */
+    **************************************************************************/
     void set_array_sizes(const std::vector<size_t>& shape){
 
         velocity = vector_field_t(shape);
+        vorticity = vector_field_t(shape);
         intermediate_velocity = vector_field_t(shape);
 
         pressure = scalar_field_t(shape);
         rhs = scalar_field_t(shape);
     }
 
-    /**
+    /**************************************************************************
      * Initialize all solution fields to their starting values.
-    */
+    **************************************************************************/
     void initialize_solution(Problem<T>& problem){
         
-        velocity.fill(problem.flow_parameters().initial_velocities());
-        intermediate_velocity.zeros();
-
-        rhs.zeros();
         pressure.zeros();
+        velocity.fill(problem.flow_parameters().initial_velocities());
+        vorticity.zeros();
+
+        intermediate_velocity.zeros();
+        rhs.zeros();
     }
 
-    /**
+    /**************************************************************************
      * Get a field of single vector direction components from a vector field.
-    */
+    **************************************************************************/
     scalar_field_t component_to_field(vector_field_t& field, int dim){
         auto result = scalar_field_t(field.shape());
 
@@ -96,42 +99,42 @@ struct Solution{
         return result;
     }
 
-    /**
+    /**************************************************************************
      * Get the field of velocity components in the x-direction (U).
-    */
+    **************************************************************************/
     scalar_field_t U(){return component_to_field(velocity, 0);}
 
-    /**
+    /**************************************************************************
      * Get the field of velocity components in the y-direction (V).
-    */
+    **************************************************************************/
     scalar_field_t V(){return component_to_field(velocity, 1);}
 
-    /**
+    /**************************************************************************
      * Get the field of velocity components in the z-direction (W).
-    */
+    **************************************************************************/
     scalar_field_t W(){return component_to_field(velocity, 2);}
 
-    /**
+    /**************************************************************************
      * Get the field of intermediate velocity components in the 
      * x-direction (F).
-    */
+    **************************************************************************/
     scalar_field_t F(){return component_to_field(intermediate_velocity, 0);}
 
-    /**
+    /**************************************************************************
      * Get the field of intermediate velocity components in the 
      * y-direction (G).
-    */
+    **************************************************************************/
     scalar_field_t G(){return component_to_field(intermediate_velocity, 1);}
 
-    /**
+    /**************************************************************************
      * Get the field of intermediate velocity components in the 
      * y-direction (H).
-    */
+    **************************************************************************/
     scalar_field_t H(){return component_to_field(intermediate_velocity, 2);}
 
-    /**
+    /**************************************************************************
      * Get the field of velocity components in the specified direction.
-    */
+    **************************************************************************/
     scalar_field_t velocity_component(int dim){
         switch(dim){
             case 0:
@@ -145,10 +148,10 @@ struct Solution{
         }
     }
 
-    /**
+    /**************************************************************************
      * Get the field of intermediate velocity components in the specified
      *  direction.
-    */
+    **************************************************************************/
     scalar_field_t intermediate_velocity_component(int dim){
         switch(dim){
             case 0:
@@ -162,10 +165,10 @@ struct Solution{
         }
     }
 
-    /**
+    /**************************************************************************
      * Get the absolute value of the maximum velocity component in each
      * direction.
-    */
+    **************************************************************************/
     std::array<T,3> max_velocity_components(){
 
         std::array<T,3> max_components = {0,0,0};

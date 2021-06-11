@@ -2,14 +2,14 @@
 [geometry]
 dimension=3
 domain_size=[1.0, 1.0, 1.0]
-num_cells=[128, 128, 128]
+num_cells=[64, 64, 64]
 material_map=""
 
 [solver]
 upwind_factor=0.9
 relax_factor=1.7
 tolerance=1e-6
-max_iters=10000
+max_iters=100000
 
 [time]
 max_time=10.0
@@ -17,7 +17,7 @@ step_factor=0.5
 dt_start=1e-6
 
 [flow]
-reynolds=1000.0
+reynolds=500.0
 initial_velocity=[0.0, 0.0, 0.0]
 body_force=[0.0, 0.0, 0.0]
 
