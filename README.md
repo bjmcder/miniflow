@@ -15,5 +15,5 @@ Currently, miniflow has no automated build system. To build manually, use the fo
 Miniflow currently accepts TOML-formatted input files. Check out the ```examples/``` folder for example inputs.
 
 ## References
-1. Griebel, M. <i>Numerical Simulaion in Fluid Dynamics</i>. Society for Industrial and Applied Mathematics. 1998.
+1. Griebel, M. <i>Numerical Simulation in Fluid Dynamics</i>. Society for Industrial and Applied Mathematics. 1998.
 2. https://ins.uni-bonn.de/content/software-nast2d
